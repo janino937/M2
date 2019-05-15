@@ -47,7 +47,7 @@ characterTable ZZ := n -> (
     charTable#index = partitions n;
     charTable#length = #(charTable#index);
     charTable#number = n;
-    charTable#table = mutableMatrix(ZZ,charTable#length,charTable#length);
+    charTable#values = mutableMatrix(ZZ,charTable#length,charTable#length);
     charTable
 )
 
@@ -88,7 +88,7 @@ binarySearch(List, Partition) := (partis,parti)->(
 ------
 getEntry = method (TypicalValue => ZZ)
 getEntry(CharacterTable,ZZ,ZZ):= (charTable, a,b)-> (
-    charTable#table_(a,b)
+    charTable#values_(a,b)
     )
 
 getEntry(CharacterTable,Partition,Partition):= (charTable, a,b)->(
@@ -96,17 +96,17 @@ getEntry(CharacterTable,Partition,Partition):= (charTable, a,b)->(
     if(sum(toList a) != charTable#number or sum(toList b)!= charTable#number) then error ("Partition dimensions do not match ",a," ",b," ",charTable#number);
     a=binarySearch(charTable#index,a);
     b=binarySearch(charTable#index,b);
-    (charTable#table)_(a,b)
+    (charTable#values)_(a,b)
     )
 getEntry(CharacterTable,ZZ,Partition):= (charTable, a,b)->(
     if(sum(toList b)!= charTable#number) then error ("Partition dimensions do not match ",b, " " ,charTable#number);
     b=binarySearch(charTable#index,b);
-    (charTable#table)_(a,b)
+    (charTable#values)_(a,b)
     )
 getEntry(CharacterTable,Partition,ZZ):= (charTable, a,b)->(
     if(sum(toList a) != charTable#number) then error ("Partition dimensions do not match ",a, " ", charTable#number);
     a=binarySearch(charTable#index,a);
-    (charTable#table)_(a,b)
+    (charTable#values)_(a,b)
     )
 
 ------
@@ -116,23 +116,23 @@ getEntry(CharacterTable,Partition,ZZ):= (charTable, a,b)->(
 
 changeEntry = method()
 changeEntry(CharacterTable,ZZ,ZZ,ZZ):= (charTable, a,b,val)->(
-    (charTable#table)_(a,b)=val;
+    (charTable#values)_(a,b)=val;
     )
 changeEntry(CharacterTable,Partition,Partition,ZZ):= (charTable, a,b,val)->(
     if(sum(toList a) != charTable#number or sum(toList b)!= charTable#number) then error ("Partition dimensions do not match",a," ",b," ",charTable#number);
     a=binarySearch(charTable#index,a);
     b=binarySearch(charTable#index,b);
-    (charTable#table)_(a,b)=val;
+    (charTable#values)_(a,b)=val;
     )
 changeEntry(CharacterTable,ZZ,Partition,ZZ):= (charTable, a,b,val)->(
     if( sum(toList b)!= charTable#number) then error ("Partition dimensions do not match",b," ",charTable#number);
     b=binarySearch(charTable#index,b);
-    (charTable#table)_(a,b) = val;
+    (charTable#values)_(a,b) = val;
     )
 changeEntry(CharacterTable,Partition,ZZ,ZZ):= (charTable, a,b,val)->(
     if(sum(toList a) != charTable#number) then error ("Partition dimensions do not match",a," ", charTable#number);
     a=binarySearch(charTable#index,a);
-    (charTable#table)_(a,b)=val;
+    (charTable#values)_(a,b)=val;
     )
 	
 
@@ -175,7 +175,7 @@ irreducibleCharacters(ZZ) := (n) -> (
 	    );
 	);
         --print("Table",i);
-    	--print((charTables#i)#table);	
+    	--print((charTables#i)#values);	
     ); 
     reduceCharacterTable(charTables#n,n)
     --charTables#n
@@ -190,7 +190,7 @@ reduceCharacterTable (CharacterTable,ZZ)  := (charTable,n) -> (
     
         for j to  i-1 do(
             
-            c := innerProduct(n,(charTable#table)^{i},(charTable#table)^{j});
+            c := innerProduct(n,(charTable#values)^{i},(charTable#values)^{j});
             for k to charTable#length-1 do(
 		val:= getEntry(charTable,i,k)-c*getEntry(charTable,j,k);
                 changeEntry(charTable,i,k,val);
@@ -238,3 +238,59 @@ calculateNumberOfEquals(MutableHashTable,Partition, Partition):= (charTables,par
     ) else error "Partition dimensions do not match";
     z
 )
+
+--******************************************--
+-- DOCUMENTATION     	       	    	    -- 
+--******************************************--
+
+beginDocumentation()
+
+doc ///
+  Key
+    SymmetricCharacterTable
+  Headline
+    a package that calculates the character table of the symmetric group.
+  Description
+    
+    Text
+    	{\bf SymmetricCharacterTable} is a package that is used to calculate the character tables of the symmetric group. 
+	The algorithm we proposed is alternative to the now standard {\em Murnaghan-Nakayama rule}. This is one of the packages used by
+	SymmetricInvariantTheory.m2.
+	
+	
+	This implementation is based in the construction of Specht Module as explained in [Sagan]. Let $\lambda$ be a partition of n. In this work it is shown that 
+	the permutation modules $M^\lambda$ have a single copy of the Specht module $S^\lambda$. Let $\phi^\lambda$ denote the character of $M^\lambda$. This means that
+	the irreducible characters can be obtained from $\phi^\lambda$ using the inner product for characters. The values of the $\phi^\lambda$ can be
+	calculated using a recursive formula.
+	 
+	Since the entries in the character table of $S_n$ are indexed by partitions of the integer $n$, the package has an object CharacterTable where the
+	entries are indexed by partitions.
+	
+	As an example we show the character table for $S_5$.
+    
+    Example
+    	peek irreducibleCharacters 5	
+   ///;
+   
+--###################################
+-- Types
+--###################################
+
+doc ///
+  Key
+    CharacterTable
+  Headline
+    the class of character tables
+  Description
+    
+    Text
+        This type represents the character table of a symmetric group. Its implemented as a
+    	hash table which stores the list of partitions, the size of the table and a
+    	matrix which stores the values of the table.
+  
+  SeeAlso
+    	characterTable
+ ///
+    
+ end
+    
