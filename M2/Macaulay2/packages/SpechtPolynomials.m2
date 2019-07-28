@@ -182,7 +182,7 @@ mapiPolynomial(YoungTableau,YoungTableau,PolynomialRing):=(S,T,R)->(
     sumPolynomial := 0_R;
     for i to rowPermutations#length-1 do(
 	
-	indTableau := getTableau(rowPermutations,i);
+	indTableau := getTableau(i,rowPermutations);
 	sign := orderColumnsTableau(indTableau);
 	--printTableau(indTableau);
 	fact:= 1_R;

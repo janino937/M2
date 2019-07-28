@@ -557,7 +557,7 @@ addTableau(TableauList, YoungTableau):= (tableaux, tableau) ->(
 -- Retrieves a tableau from the list
 ------
 getTableau = method(TypicalValue => ZZ)
-getTableau(TableauList,ZZ) := (tableaux, n) -> (
+getTableau(ZZ,TableauList) := ( n , tableaux) -> (
     
     youngTableau(tableaux#partition,flatten entries tableaux#matrix^{n})
     ) 
@@ -1666,3 +1666,5 @@ irreducibleSpechtRepresentation(Partition, PolynomialRing) := (parti, R)-> (
     toList(lista)
 ) 
 
+    	
+   

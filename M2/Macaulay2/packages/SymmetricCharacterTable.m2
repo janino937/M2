@@ -17,7 +17,6 @@ export {"characterTable"}
 export {"getEntry"}
 export {"binarySearch"}
 
-
 --***************************
 -- CharacterTable
 --***************************
@@ -171,7 +170,7 @@ innerProduct(ZZ,MutableMatrix,MutableMatrix) := (n,C,X) -> (
 
 
 
-- This method applies Gram-Schmidt to the table of permutation characters.
+-- This method applies Gram-Schmidt to the table of permutation characters.
 -- This method uses the fact that a permutation module consists of a direct sum
 -- of a copy of the irreducible Specht module S^\lambda and some copies of
 -- Specht modules S^\mu such that \mu> \lambda in lexicographical order
@@ -366,13 +365,11 @@ doc ///
   Headline
    method that returns an entry of the character table
   Usage
-      getEntry(a,b,CharacterTable) 
+      getEntry(a,b,charTable) 
   Inputs
-      partitions:List
-      	the list of partitions of n
-       a:ZZ or Partition
+       a:ZZ
       	 the row index which can be either a number or a partition
-       b:ZZ or Partition
+       b:ZZ
       	 the column index which can be either a number or a partition
        charTable:CharacterTable
       	 the character table in which the search is being conducted

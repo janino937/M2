@@ -72,12 +72,12 @@ generatePermutationGroup List := gens -> (
 
 representationMultiplicity = method(TypicalValue => ZZ)
 representationMultiplicity(List, ZZ):=  (group, row)->(
-    charTable := irreducibleCharacters (#(group#0));
+    charTable := characterTable (#(group#0));
     cardinalities:= new MutableHashTable;
     for i to #group-1 do(
     	
 	parti2:= cycleStructure(group#i);
-	ind:= getIndexPartition(charTable,parti2);
+	ind:= binarySearch(parti2,charTable#index);
 	
 	--print(group#i,parti2,ind);
 	if(cardinalities#?ind) then 
@@ -91,8 +91,8 @@ representationMultiplicity(List, ZZ):=  (group, row)->(
     
     
     for i to #inds-1 do(
-	mult= mult+cardinalities#(inds#i)*getEntry(charTable,row,inds#i);	
-    	--print(mult,inds#i,cardinalities#(inds#i),getEntry(charTable,row,inds#i));
+	mult= mult+cardinalities#(inds#i)*getEntry(row,inds#i,charTable);	
+    	--print(mult,inds#i,cardinalities#(inds#i),getEntry(row,inds#i,charTable));
     );
     --error "Debug";
     mult/(#group)
@@ -277,7 +277,7 @@ secondaryInvariant(List,TableauList,YoungTableau):=(vect,standard,tableauS)->(
     j:= 0;
     for i to #vect-1 do(
     	if(not vect#i == 0) then (
-	     secondaryInvariant#j = (vect#i,spechtPolynomial(tableauS,getTableau(standard,i)));   
+	     secondaryInvariant#j = (vect#i,spechtPolynomial(tableauS,getTableau(i,standard)));   
 	    j= j+1;
 	);
     	
@@ -291,7 +291,7 @@ secondaryInvariant(List,TableauTupleList,YoungTableauTuple):=(vect,standard,tabl
     j:= 0;
     for i to #vect-1 do(
     	if(not vect#i == 0) then (
-	     secondaryInvariant#j = (vect#i,spechtPolynomial(tableauS,getTableau(standard,i)));   
+	     secondaryInvariant#j = (vect#i,spechtPolynomial(tableauS,getTableau(i,standard)));   
 	    j= j+1;
 	);
     	
@@ -390,7 +390,7 @@ for i to #p-1 do(
 	    	    for k to numColumns(gen)-1 do(
 	    	    	col:= flatten entries gen_{k};
 		    	Sec#m = col;
-	    	    	Sec#m = secondaryInvariant(col,standard,getTableau(standard,j));
+	    	    	Sec#m = secondaryInvariant(col,standard,getTableau(j,standard));
 		    	m=m+1;
 			--print(Sec#(m-1),m);
 	    	    	);    
@@ -404,7 +404,7 @@ for i to #p-1 do(
 		timeStamp1 = cpuTime();
 		for j to standard#length-1 do(
 	    	    for k to standard#length-1 do(
-		   	Sec#m = secondaryInvariant(spechtPolynomial(getTableau(standard,j),getTableau(standard,k)));
+		   	Sec#m = secondaryInvariant(spechtPolynomial(getTableau(j,standard),getTableau(k,standard)));
 	           	m=m+1;
 		--	print(Sec#(m-1),m,"Complete");
 	    	    	);
