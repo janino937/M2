@@ -38,8 +38,9 @@ characterTable ZZ := n -> (
 	
 	 
 	charTable := new CharacterTable;
-    	charTable#index = partitions i;
-    	charTable#length = #(charTable#index);
+	partis := partitions i;
+	charTable#index = hashTable apply(#partis, i-> partis#i => i);
+    	charTable#length = #(partis);
     	charTable#degree = i;
     	charTable#values = mutableMatrix(ZZ,charTable#length,charTable#length);
     	charTables#i = charTable;
@@ -63,7 +64,7 @@ characterTable ZZ := n -> (
 -- Methods
 --------------------
 
-
+-- Deprecated
 -- Calculates the index of partition p in the list partitions.
 -- It uses the binary search methods.
 -- The list of partitions must be indexed in lexicographical order
@@ -94,18 +95,18 @@ getEntry(ZZ,ZZ,CharacterTable):=(a,b,charTable)-> (
 getEntry(Partition,Partition,CharacterTable):= (a,b,charTable)->(
     
     if(sum(toList a) != charTable#degree or sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match ",a," ",b," ",charTable#number);
-    a=binarySearch(a,charTable#index);
-    b=binarySearch(b,charTable#index);
+    a=charTable#index#a;
+    b=charTable#index#b;
     (charTable#values)_(a,b)
     )
 getEntry(ZZ,Partition,CharacterTable):= (a,b,charTable)->(
     if(sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match ",b, " " ,charTable#number);
-    b=binarySearch(b,charTable#index);
+    b=charTable#index#b;
     (charTable#values)_(a,b)
     )
 getEntry(Partition,ZZ,CharacterTable):= (a,b,charTable)->(
     if(sum(toList a) != charTable#degree) then error ("Partition dimensions do not match ",a, " ", charTable#number);
-    a=binarySearch(a,charTable#index);
+    a=charTable#index#a;
     (charTable#values)_(a,b)
     )
 
@@ -127,18 +128,18 @@ changeEntry(ZZ,ZZ,ZZ,CharacterTable):= ( a,b,val,charTable)->(
     )
 changeEntry(Partition,Partition,ZZ,CharacterTable):= (a,b,val,charTable)->(
     if(sum(toList a) != charTable#degree or sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match",a," ",b," ",charTable#number);
-    a=binarySearch(a,charTable#index);
-    b=binarySearch(b,charTable#index);
+    a=charTable#index#a;
+    b=charTable#index#b;
     (charTable#values)_(a,b)=val;
     )
 changeEntry(ZZ,Partition,ZZ,CharacterTable):= ( a,b,val,charTable)->(
     if( sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match",b," ",charTable#number);
-    b=binarySearch(b,charTable#index);
+    b=charTable#index#b;
     (charTable#values)_(a,b) = val;
     )
 changeEntry(Partition,ZZ,ZZ,CharacterTable):= ( a,b,val,charTable)->(
     if(sum(toList a) != charTable#degree) then error ("Partition dimensions do not match",a," ", charTable#number);
-    a=binarySearch(a,charTable#index);
+    a=charTable#index#a;
     (charTable#values)_(a,b)=val;
     )
 	
