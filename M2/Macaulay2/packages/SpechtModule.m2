@@ -1,4 +1,4 @@
-load-- -*- coding: utf-8 -*-
+laodload-- -*- coding: utf-8 -*-
 newPackage(
         "SpechtModule",
         Version => "1.5", 
@@ -17,6 +17,8 @@ newPackage(
 export {"YoungTableau"}
 export {"youngTableau"}
 export {"tableauToList"}
+export {"listToTableau"}
+
 export {"isLastIndex"}
 export {"nextIndex"}
 
@@ -29,10 +31,11 @@ export {"previousElementInColumn"}
 export {"getRow"}
 export {"getColumn"}
 export {"getElement"}
+export {"setElement"}
 export {"next"}
 export {"printTableau"}
 export {"printTableaux"}
-export {"changeLabels"}
+export {"changeFilling"}
 
 
 export {"TableauList"}
@@ -90,7 +93,7 @@ youngTableau Partition := p -> (
     tableau:= new YoungTableau;
     tableau#partition = p;
     tableau#index = {0,0,0};
-    scan(0..sum(toList p)-1, i-> tableau#i = 0);
+    tableau#values = new MutableList from ((sum toList p):0) ;
     tableau
 )
 
@@ -101,7 +104,7 @@ youngTableau(Partition,List):= (p,L)->(
     tableau#index = {0,0,0};
     if #L != 0 then (
     tableau#index = {#p-1,(last p)-1,sum(toList p)};
-    scan(0..sum(toList p)-1, i-> tableau#i = L#i);
+    tableau#values = new MutableList from L;
     );
     tableau
 )
@@ -113,13 +116,13 @@ youngTableau(YoungTableau):= (tableau)->(
 )
 
 youngTableau(Partition,MutableList):= (p,L)->(
-     if(sum toList p != #L) then error " Partition and List size do not match";
+    if(sum toList p != #L) then error " Partition and List size do not match";
     tableau:= new YoungTableau;
     tableau#partition =p;
     tableau#index = {0,0,0};
     if #L!= 0 then (
     tableau#index = {#p-1,(last p)-1,sum(toList p)};
-    scan(0..sum(toList p)-1, i-> tableau#i = L#i);
+    tableau#values = L;
     );
     tableau
 )
@@ -133,7 +136,7 @@ youngTableau(Partition,MutableMatrix):= (p,L)->(
     if (#L != 0) then (
     tableau#index = {#p-1,(last p)-1,sum(toList p)};
     
-    scan(0..sum(toList p)-1, i-> tableau#i = L_(0,i));
+    tableau#values = new MutableList from flatten values L;
     );
     tableau
 )
@@ -147,7 +150,7 @@ youngTableau(Partition,Sequence):=(p,L)->(
     if (#L != 0) then (
     tableau#index = {#p-1,(last p)-1,sum(toList p)};
     
-    scan(0..sum(toList p)-1, i-> tableau#i = L#i);
+    tableau#values = new MutableList from toList L;
     );
     tableau
 )
@@ -156,20 +159,20 @@ youngTableau(Partition,Sequence):=(p,L)->(
 -- Methods for object tableau
 ------
 
-changeLabels = method()
+changeFilling = method()
 
 -- Assume that the initial values were then numbers from 0 to n-1
 -- The labels are given in increasing order
 
-changeLabels(YoungTableau,List):= (tableau, labels)-> (
+changeFilling(List,YoungTableau):= (labels,tableau)-> (
     tab := youngTableau(tableau);
-    for i to sum toList  tableau#partition-1 do (
-	tab#i = labels#(tableau#i);
-	);
+    tab#values = labels;
     tab
     )
 
-changeLabels(List,List) := (tableau, labels) ->(
+
+--??
+changeFilling(List,List) := (labels,tableau) ->(
     tab:= new MutableList;
     for i to #tableau-1 do (
 	tab#i = labels#(tableau#i);
@@ -184,22 +187,22 @@ changeLabels(List,List) := (tableau, labels) ->(
 ------
 tableauToList = method(TypicalValue => MutableList)
 tableauToList(YoungTableau):= (tableau)->(
-    L:= new MutableList;
-    d:= 0;
+    
     n:= #(tableau#partition);
-    L#(n-1)=0; 
-    for i to #(tableau#partition)-1 do (
-        l:= new MutableList;
-	l#((tableau#partition#i)-1)=0;
-        for j to (tableau#partition#i)-1 do (
-            l#j = tableau#d;
-            d = d+1;
-        );
-        L#i = toList l;
-    );
-    toList L
+    d:=0;
+    s:= apply(n,i->(d=d+tableau#partition#i;d));
+    s = prepend(0,s);
+    print s;
+    L := apply(n,i->(tableau#values)_{(s#i..(s#(i+1))-1)}); 
+    L
 )
 
+listToTableau = method(TypicalValue => YoungTableau)
+listToTableau List := l -> (
+    
+    parti := new Partition from apply (l,i->#i);
+    youngTableau(parti,flatten l)
+    )
 
 ------
 -- Given a YoungTableau, it iterates its index so that it seats at the next position in the
@@ -230,9 +233,9 @@ isLastIndex(YoungTableau) := tableau -> (
 -- and sets the index to the next position.
 ------
 addElement = method(TypicalValue => Boolean)
-addElement(YoungTableau, ZZ) := (tableau, n) -> (
+addElement(ZZ,YoungTableau) := (tableau, n) -> (
     i := tableau#index#2;
-    tableau#i = n;
+    tableau#values#i = n;
     tableau = nextIndex(tableau);
     tableau
 )
@@ -257,7 +260,7 @@ previousElementInRow(YoungTableau):= (tableau)->(
     
     e := -1;
     ind := tableau#index;
-    if ind#1!=0 then e = tableau#(ind#2-1);
+    if ind#1!=0 then e = tableau#values#(ind#2-1);
     e
 )
 
@@ -271,7 +274,7 @@ previousElementInColumn(YoungTableau):= (tableau)->(
     e:=-1;
     ind := tableau#index;
     p:= tableau#partition;
-    if ind#0!=0 then e = tableau#(ind#2-p#(ind#0-1));
+    if ind#0!=0 then e = tableau#values#(ind#2-p#(ind#0-1));
     e
 )
 
@@ -333,16 +336,13 @@ maxPossibleNumbersSemistandard(YoungTableau,ZZ):= (tableau,n)-> (
 ------
 
 getElement = method()
-getElement(YoungTableau, ZZ, ZZ):= (tableau,i,j) -> (
+getElement(ZZ, ZZ,YoungTableau):= (i,j,tableau) -> (
     ans:= 0;
     if(i < #(tableau#partition)) then (
         
-        ind:= 0;
         if(j < tableau#partition#i) then ( 
-            for  k to i-1 do (
-                ind= ind + tableau#partition#k;
-            );
-            ans = tableau#(ind+j);
+            ind := sum (toList tableau#partition)_{(0..(i-1))};
+            ans = tableau#values#(ind+j);
         )
         else (error "Index out of bounds ");
     
@@ -355,7 +355,7 @@ next = method()
 next YoungTableau:= tableau -> (
     
     ind:= tableau#index;
-    ans:= tableau#(ind#2);
+    ans:= tableau#values#(ind#2);
     nextIndex(tableau);
     )
 ------
@@ -364,15 +364,12 @@ next YoungTableau:= tableau -> (
 -- j: column 
 ------
 setElement = method()
-setElement(YoungTableau,ZZ,ZZ,ZZ):= (tableau,i,j,element) -> (
+setElement(ZZ,ZZ,ZZ,YoungTableau):= (i,j,element,tableau) -> (
     ans:= 0;
     if(i < #(tableau#partition)) then (
-        ind:= 0;
         if(j < tableau#partition#i) then ( 
-            for  k to i-1 do (
-                ind = ind + tableau#partition#k;
-            );
-            tableau#(ind+j)= element;
+            ind := sum (toList tableau#partition)_{(0..(i-1))};
+            tableau#values#(ind+j)= element;
         )
         else (error "Index out of bounds ");
     
@@ -389,15 +386,13 @@ getRow = method(TypicalValue => ZZ)
 getRow(YoungTableau, ZZ):= (tableau, i) -> (
     ans:= 0;
     if i < #(tableau#partition) then (
-        ind:= 0;
-        for j to i-1 do(
-            ind = ind+tableau#partition#j;
-        );
+        ind := sum tableau#partition_{(0..(i-1))};
         ans = new MutableList;
         for j from ind to (ind + (tableau#partition#i)-1) do(
-            ans#(j-ind) = tableau#j,
+            ans#(j-ind) = tableau#j;
         );
-        ans = toList ans;
+    	ans = tableau#values_{(ind..(ind + (tableau#partition#i)-1))};
+        ans
     )
     else error "Index out of bounds";
     ans
