@@ -14,8 +14,6 @@ newPackage(
 		
 export {"CharacterTable"}
 export {"characterTable"}
-export {"getEntry"}
-export {"binarySearch"}
 
 --***************************
 -- CharacterTable
@@ -51,65 +49,36 @@ characterTable ZZ := n -> (
 	    for k from j to #y-1 do (
 		val:= calculateNumberOfEquals(y#(j),y#(k),charTables);
 		--print("ok");
-		changeEntry(j,k,val,charTables#i);
+		(charTables#i)_(j,k)=val;
 	    );
 	);
         --print("Table",i);
     	--print((charTables#i)#values);	
     ); 
-    reduceCharacterTable(charTables#n)
+   charTable := reduceCharacterTable(charTables#n);
+   charTable#values = matrix charTable#values;
+   charTable
 )
 
---------------------
--- Methods
---------------------
-
--- Deprecated
--- Calculates the index of partition p in the list partitions.
--- It uses the binary search methods.
--- The list of partitions must be indexed in lexicographical order
-binarySearch = method()
-binarySearch(Partition,List) := (p,partitions)->(
     
-    a := 0;
-    b := #partitions;  
-    c := (b+a)//2;
-    while not toList partitions#c == toList p do (
-	if(toList partitions#c> toList p) then(
-	    a = c;	
-	    )
-	else(
-	    b = c;	
-	    );
-    	c = (b+a)//2;
-	);
-    	c
-    )
-    
+       
+	
 
-getEntry = method (TypicalValue => ZZ)
-getEntry(ZZ,ZZ,CharacterTable):=(a,b,charTable)-> (
+
+CharacterTable_Sequence:=(charTable,seq)-> (
+    if #seq != 2 then error "expected a sequence of length 2";
+    (a,b) := seq;
+    if(class a === Partition) then (
+	if sum toList a != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else a=charTable#index#a)
+    else (if class a =!= ZZ then error "expected argument 1 to be a partition or an integer");	
+     
+     if(class b === Partition) then (
+	if sum toList b != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else b=charTable#index#b)
+    else if class b =!= ZZ then error "expected argument 2 to be a partition or an integer";
     charTable#values_(a,b)
     )
-
-getEntry(Partition,Partition,CharacterTable):= (a,b,charTable)->(
-    
-    if(sum(toList a) != charTable#degree or sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match ",a," ",b," ",charTable#number);
-    a=charTable#index#a;
-    b=charTable#index#b;
-    (charTable#values)_(a,b)
-    )
-getEntry(ZZ,Partition,CharacterTable):= (a,b,charTable)->(
-    if(sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match ",b, " " ,charTable#number);
-    b=charTable#index#b;
-    (charTable#values)_(a,b)
-    )
-getEntry(Partition,ZZ,CharacterTable):= (a,b,charTable)->(
-    if(sum(toList a) != charTable#degree) then error ("Partition dimensions do not match ",a, " ", charTable#number);
-    a=charTable#index#a;
-    (charTable#values)_(a,b)
-    )
-
 
 -- Method to modify the entries of the character table.
 -- Inputs:
@@ -121,28 +90,24 @@ getEntry(Partition,ZZ,CharacterTable):= (a,b,charTable)->(
 --       the value to put in the method
 --     charTable:CharacterTable
 --    	 the character table
-       
-changeEntry = method()
-changeEntry(ZZ,ZZ,ZZ,CharacterTable):= ( a,b,val,charTable)->(
-    (charTable#values)_(a,b)=val;
+
+CharacterTable_Sequence = (charTable,seq,e)-> (
+    if #seq != 2 then error "expected a sequence of length 2";
+    (a,b) := seq;
+    if(class a === Partition) then (
+	if sum toList a != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else a=charTable#index#a)
+    else (if class a =!= ZZ then error "expected argument 1 to be a partition or an integer");	
+     
+     if(class b === Partition) then (
+	if sum toList b != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else b=charTable#index#b)
+    else if class b =!= ZZ then error "expected argument 2 to be a partition or an integer";
+    charTable#values_(a,b)=e;
+    e
     )
-changeEntry(Partition,Partition,ZZ,CharacterTable):= (a,b,val,charTable)->(
-    if(sum(toList a) != charTable#degree or sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match",a," ",b," ",charTable#number);
-    a=charTable#index#a;
-    b=charTable#index#b;
-    (charTable#values)_(a,b)=val;
-    )
-changeEntry(ZZ,Partition,ZZ,CharacterTable):= ( a,b,val,charTable)->(
-    if( sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match",b," ",charTable#number);
-    b=charTable#index#b;
-    (charTable#values)_(a,b) = val;
-    )
-changeEntry(Partition,ZZ,ZZ,CharacterTable):= ( a,b,val,charTable)->(
-    if(sum(toList a) != charTable#degree) then error ("Partition dimensions do not match",a," ", charTable#number);
-    a=charTable#index#a;
-    (charTable#values)_(a,b)=val;
-    )
-	
+
+
 
 
 -- This method calculates the inner product of characters
@@ -170,6 +135,10 @@ innerProduct(ZZ,MutableMatrix,MutableMatrix) := (n,C,X) -> (
 )
 
 
+net CharacterTable := charTable -> (
+    net(charTable#values)
+    )
+
 
 -- This method applies Gram-Schmidt to the table of permutation characters.
 -- This method uses the fact that a permutation module consists of a direct sum
@@ -192,8 +161,8 @@ reduceCharacterTable CharacterTable  := charTable -> (
             
             c := innerProduct(charTable#degree,(charTable#values)^{i},(charTable#values)^{j});
             for k to charTable#length-1 do(
-		val:= getEntry(i,k,charTable)-c*getEntry(j,k,charTable);
-                changeEntry(i,k,val,charTable);
+		val:= charTable_(i,k)-c*charTable_(j,k);
+                charTable_(i,k)=val;
             );
      );
     	
@@ -235,7 +204,8 @@ calculateNumberOfEquals(Partition, Partition,MutableHashTable):= (partition1, pa
 		    
 		    --print(newPartition);
 		    --print(partition2);
-		    z = z+getEntry(newPartition,partition2,charTables#(sum(toList newPartition)));
+		    currentTableNumber:=sum(toList newPartition);
+		    z = z+(charTables#currentTableNumber)_(newPartition,partition2);
 		    --print("ok");
 		    --print(z);
 		);
@@ -288,6 +258,8 @@ doc ///
   
   Key
     CharacterTable
+    (symbol _,CharacterTable, Sequence)
+    (net,CharacterTable)
   Headline
     the class of character tables
   Description
@@ -297,6 +269,12 @@ doc ///
     	hash table which stores the list of partitions, the size of the table and a
     	matrix which stores the values of the table.
   
+     Example
+    	charTable = characterTable 5
+	a = new Partition from {3,1,1};b = new Partition from {1,1,1,1,1}
+	peek charTable
+	charTable_(a,b)
+ 
   SeeAlso
     	characterTable
  ///
@@ -325,75 +303,76 @@ doc ///
   SeeAlso
     	CharacterTable
  ///
-       
-   doc ///
-  Key
-    binarySearch
-    (binarySearch,Partition,List)
-  Headline
-   method used to find the appropriate index of an entry in the character table 
-  Usage
-      binarySearch(p,partitions) 
-  Inputs
-      partitions:List
-      	the list of partitions of n
-      p:Partition
-      	 the partition which index is being search.
-  Outputs
-      :ZZ
-      	 the index of p in the list of partitions.
-  Description
-    
-    Text
-        This method is used to efficiently navigate the character table of $S_n$. Since the entries in this table are indexed by partitions, the method takes a partition an performs binary
-	search on the list of partitions to return the appropriate position of this partition in the list. This method can be used since partitions are ordered in lexicographical order. 
-    Example
-    	partitions 5
-    	binarySearch (new Partition from {3,2} , partitions 5)
-  SeeAlso
-      getEntry
-
- ///
+ 
     
  
-   doc ///
-  Key
-    getEntry
-    (getEntry,Partition,Partition,CharacterTable)
-    (getEntry,Partition,ZZ,CharacterTable)
-    (getEntry,ZZ,Partition,CharacterTable)
-    (getEntry,ZZ,ZZ,CharacterTable)
-  Headline
-   method that returns an entry of the character table
-  Usage
-      getEntry(a,b,charTable) 
-  Inputs
-       a:ZZ
-      	 the row index which can be either a number or a partition
-       b:ZZ
-      	 the column index which can be either a number or a partition
-       charTable:CharacterTable
-      	 the character table in which the search is being conducted
-       
-  Outputs
-      :ZZ
-      	 the value in the cell (a,b) of charTable.
-  Description
-    
-    Text
-        This method gives the entry of a cell which is index either by a number or a partition
-    Example
-    	charTable = irreducibleCharacters 5
-	a = new Partition from {3,1,1};b = new Partition from {1,1,1,1,1}
-	peek charTable
-	getEntry(a,b,charTable)
-  SeeAlso
-      getEntry
-
- ///
     
     
  end
  
  
+   --------------------
+-- Methods
+--------------------
+
+-- Deprecated
+-- Calculates the index of partition p in the list partitions.
+-- It uses the binary search methods.
+-- The list of partitions must be indexed in lexicographical order
+binarySearch = method()
+binarySearch(Partition,List) := (p,partitions)->(
     
+    a := 0;
+    b := #partitions;  
+    c := (b+a)//2;
+    while not toList partitions#c == toList p do (
+	if(toList partitions#c> toList p) then(
+	    a = c;	
+	    )
+	else(
+	    b = c;	
+	    );
+    	c = (b+a)//2;
+	);
+    	c
+    )
+
+changeEntry = method()
+changeEntry(ZZ,ZZ,ZZ,CharacterTable):= ( a,b,val,charTable)->(
+    (charTable#values)_(a,b)=val;
+    )
+changeEntry(Partition,Partition,ZZ,CharacterTable):= (a,b,val,charTable)->(
+    if(sum(toList a) != charTable#degree or sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match",a," ",b," ",charTable#number);
+    a=charTable#index#a;
+    b=charTable#index#b;
+    (charTable#values)_(a,b)=val;
+    )
+changeEntry(ZZ,Partition,ZZ,CharacterTable):= ( a,b,val,charTable)->(
+    if( sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match",b," ",charTable#number);
+    b=charTable#index#b;
+    (charTable#values)_(a,b) = val;
+    )
+changeEntry(Partition,ZZ,ZZ,CharacterTable):= ( a,b,val,charTable)->(
+    if(sum(toList a) != charTable#degree) then error ("Partition dimensions do not match",a," ", charTable#number);
+    a=charTable#index#a;
+    (charTable#values)_(a,b)=val;
+    )
+
+getEntry = method()
+getEntry(Partition,Partition,CharacterTable):= (a,b,charTable)->(
+    
+    if(sum(toList a) != charTable#degree or sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match ",a," ",b," ",charTable#number);
+    a=charTable#index#a;
+    b=charTable#index#b;
+    (charTable#values)_(a,b)
+    )
+getEntry(ZZ,Partition,CharacterTable):= (a,b,charTable)->(
+    if(sum(toList b)!= charTable#degree) then error ("Partition dimensions do not match ",b, " " ,charTable#number);
+    b=charTable#index#b;
+    (charTable#values)_(a,b)
+    )
+getEntry(Partition,ZZ,CharacterTable):= (a,b,charTable)->(
+    if(sum(toList a) != charTable#degree) then error ("Partition dimensions do not match ",a, " ", charTable#number);
+    a=charTable#index#a;
+    (charTable#values)_(a,b)
+    )
