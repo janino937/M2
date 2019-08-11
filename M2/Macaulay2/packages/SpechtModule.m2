@@ -192,8 +192,7 @@ tableauToList(YoungTableau):= (tableau)->(
     d:=0;
     s:= apply(n,i->(d=d+tableau#partition#i;d));
     s = prepend(0,s);
-    print s;
-    L := apply(n,i->(tableau#values)_{(s#i..(s#(i+1))-1)}); 
+    L := apply(n,i->(toList tableau#values)_{(s#i..(s#(i+1))-1)}); 
     L
 )
 
@@ -320,11 +319,11 @@ maxPossibleNumberStandard(YoungTableau):= (tableau) ->(
 
 
 maxPossibleNumbersSemistandard = method(TypicalValue => ZZ)
-maxPossibleNumbersSemistandard(YoungTableau,ZZ):= (tableau,n)-> (
+maxPossibleNumbersSemistandard(ZZ,YoungTableau):= (n,tableau)-> (
     
   ind:=tableau#index;
   s:=n;
-  s = s - #(getColumn(tableau,ind#1))+ind#0;
+  s = s - #(tableau_(ind#1))+ind#0;
   --s = s+1;
   s
     )
@@ -335,21 +334,49 @@ maxPossibleNumbersSemistandard(YoungTableau,ZZ):= (tableau,n)-> (
 -- j: column 
 ------
 
-getElement = method()
-getElement(ZZ, ZZ,YoungTableau):= (i,j,tableau) -> (
+
+YoungTableau_Sequence:= (tableau,pos) -> (
+    if #pos != 2 then error "expected a sequence of length two"
+    
+else(
+    (i,j) := pos;
     ans:= 0;
     if(i < #(tableau#partition)) then (
         
         if(j < tableau#partition#i) then ( 
-            ind := sum (toList tableau#partition)_{(0..(i-1))};
+            ind := sum (toList tableau#partition)_{0..(i-1)};
             ans = tableau#values#(ind+j);
         )
         else (error "Index out of bounds ");
     
     )
     else( error "Index out of bounds" );
-    ans   
+    ans  
+    )
+
 )
+
+
+------
+-- Sets the element in the position (i,j) of the young diagram.
+-- i: row
+-- j: column 
+------
+YoungTableau_Sequence = (tableau,pos,e)->(
+    (i,j):=pos;
+    if(i < #(tableau#partition)) then (
+        if(j < tableau#partition#i) then ( 
+            ind := sum (toList tableau#partition)_{0..(i-1)};
+            tableau#values#(ind+j)= e;
+        )
+        else (error "Index out of bounds ");
+    
+    )
+    else( error "Index out of bounds" );
+    e
+    
+    )
+
 
 next = method()
 next YoungTableau:= tableau -> (
@@ -358,83 +385,62 @@ next YoungTableau:= tableau -> (
     ans:= tableau#values#(ind#2);
     nextIndex(tableau);
     )
-------
--- Sets the element in the position (i,j) of the young diagram.
--- i: row
--- j: column 
-------
-setElement = method()
-setElement(ZZ,ZZ,ZZ,YoungTableau):= (i,j,element,tableau) -> (
-    ans:= 0;
-    if(i < #(tableau#partition)) then (
-        if(j < tableau#partition#i) then ( 
-            ind := sum (toList tableau#partition)_{(0..(i-1))};
-            tableau#values#(ind+j)= element;
-        )
-        else (error "Index out of bounds ");
-    
-    )
-    else( error "Index out of bounds" );
-    true
-    
-)
 
 ------
 -- Gives a list of all the elements in the row i 
 ------
-getRow = method(TypicalValue => ZZ)
-getRow(YoungTableau, ZZ):= (tableau, i) -> (
-    ans:= 0;
+YoungTableau^ZZ := (tableau,i) -> (
+    ans:=0;
     if i < #(tableau#partition) then (
-        ind := sum tableau#partition_{(0..(i-1))};
-        ans = new MutableList;
-        for j from ind to (ind + (tableau#partition#i)-1) do(
-            ans#(j-ind) = tableau#j;
-        );
-    	ans = tableau#values_{(ind..(ind + (tableau#partition#i)-1))};
-        ans
+        ind := sum (toList tableau#partition)_{0..(i-1)};
+    	ans = (toList tableau#values)_{(ind..(ind + (tableau#partition#i)-1))};   
     )
     else error "Index out of bounds";
     ans
-)
+    )
 
 ------
 -- Gives a list of all the elements in the column i 
 ------
-getColumn = method(TypicalValue => ZZ)
-getColumn(YoungTableau, ZZ):= (tableau, i) -> (
+YoungTableau_ZZ := (tableau,i) -> (
     ans:= 0;
-    if i < tableau#partition#0 then (
+    if -1< i and i < tableau#partition#0 then (
         ind:= 0;
         ans = new MutableList;
         for j to #(tableau#partition)-1 when (tableau#partition#j > i) do(
-            ans#j = tableau#(ind+i);
+            ans#j = tableau#values#(ind+i);
             ind = ind+(tableau#partition#j);
         );
         ans = toList ans;
+	ans
     )
-    else error "Index out of bounds";
-    ans
 )
-
 
 ------
 -- A method to give a graphical representation of a Young diagram. This method saves the
 -- diagram in a mutable matrix and then prints the matrix. 
 ------
-printTableau = method()
-printTableau YoungTableau := tableau ->(
-    matrix:= mutableMatrix(QQ,#(tableau#partition),tableau#partition#0);
-    for i to numRows (matrix) -1 do(
-    	row:= getRow(tableau,i);
-	for j to #row-1 do(
-	    matrix_(i,j)= row#j;    
-	);	
-    );
-    print("");
-    print(matrix);
+net YoungTableau := tableau ->(
+    l := tableauToList tableau;
+    corner := #(tableau#partition) ;
+    tableauNet:= "|" ;
+    for i to corner-2 do tableauNet = tableauNet || "|"; 
+    
+    for i to (tableau#partition#0)-1 do ( 
+	column:= tableau_i;
+	columnString := " "|column#0;
+	for j from 1 to #column-1 do columnString = columnString|| " "|column#j;
+	for j from #column to corner -1 do columnString = columnString || " |" ;
+    	corner = #column;
+	tableauNet = tableauNet|columnString;
+	);
+    columnString := " |";
+    for i to corner-2 do columnString= columnString || " |"; 
+    tableauNet = tableauNet | columnString;
+    tableauNet
 )
 
+printTableau = method()
 printTableau (YoungTableau,ZZ) := (tableau,n) ->(
     matrix:= mutableMatrix(QQ,#(tableau#partition),tableau#partition#0);
     for i to numRows (matrix) -1 do(
@@ -675,6 +681,7 @@ nextIndex(MultiSet):=(numbers)->(
       n+1
 )
 
+getElement = method()
 getElement(MultiSet):= (numbers)-> (
     
     ind := numbers#index-1;
