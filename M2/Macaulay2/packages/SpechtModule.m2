@@ -19,10 +19,13 @@ export {"youngTableau"}
 export {"tableauToList"}
 export {"listToTableau"}
 
+
 export {"isLastIndex"}
 export {"nextIndex"}
 
 export {"hookLengthFormula"}
+export {"cycleDecomposition"}
+export {"conjugacyClass"}
 
 export {"changeElement"}
 export {"addElement"}
@@ -39,6 +42,9 @@ export {"changeFilling"}
 
 
 export {"TableauList"}
+export {"tableauList"}
+export {"toListOfTableaux"}
+
 export {"addTableau"}
 export {"getTableau"}
 export {"tabloids"}
@@ -53,7 +59,6 @@ export {"permutationsFixColumn"}
 export {"permutationsFixRow"}
 export {"columnStabilizer"}
 export {"rowStabilizer"}
-export {"cycleStructure"}
 export {"combinations"}
 export {"garnirElement"}
 export {"orderColumnsTableau"}
@@ -128,7 +133,8 @@ youngTableau(Partition,MutableList):= (p,L)->(
 )
 
 youngTableau(Partition,MutableMatrix):= (p,L)->(
-    if(sum toList p != # (flatten entries L )) then error " Partition and List size do not match";
+    if(numRows L != 1 ) then error "expected a matrix with one row";
+    if(sum toList p != # (flatten entries L )) then error "Partition and List size do not match";
     tableau:= new YoungTableau;
     tableau#partition =p;
     tableau#index = {0,0,0};
@@ -136,7 +142,7 @@ youngTableau(Partition,MutableMatrix):= (p,L)->(
     if (#L != 0) then (
     tableau#index = {#p-1,(last p)-1,sum(toList p)};
     
-    tableau#values = new MutableList from flatten values L;
+    tableau#values = new MutableList from flatten entries L;
     );
     tableau
 )
@@ -170,17 +176,6 @@ changeFilling(List,YoungTableau):= (labels,tableau)-> (
     tab
     )
 
-
---??
-changeFilling(List,List) := (labels,tableau) ->(
-    tab:= new MutableList;
-    for i to #tableau-1 do (
-	tab#i = labels#(tableau#i);
-	);
-    toList tab
-    )
-
-
 ------
 -- Gives a representation of the Young Tableau as a list of the rows in the
 -- diagram.
@@ -204,50 +199,247 @@ listToTableau List := l -> (
     )
 
 ------
--- Given a YoungTableau, it iterates its index so that it seats at the next position in the
---tableau. This assumes that the tableau if been read by rows.
+-- Gets the element in the position (i,j) of the young diagram.
+-- i: row
+-- j: column 
 ------
-nextIndex=method(TypicalValue=>YoungTableau)
-nextIndex YoungTableau  := tableau->(
-    l := tableau#index;
-    p := tableau#partition;
-    if(p#(l#0)-1==(l#1)) then (l= {l#0+1,0,l#2+1})
-    else l = {l#0,l#1+1,l#2+1};
-    tableau#index = l;
-    tableau
+
+YoungTableau_Sequence:= (tableau,pos) -> (
+    if #pos != 2 then error "expected a sequence of length two"
+    
+else(
+    (i,j) := pos;
+    ans:= 0;
+    if(i < #(tableau#partition)) then (
+        
+        if(j < tableau#partition#i) then ( 
+            ind := sum (toList tableau#partition)_{0..(i-1)};
+            ans = tableau#values#(ind+j);
+        )
+        else (error "Index out of bounds ");
+    
+    )
+    else( error "Index out of bounds" );
+    ans  
+    )
+
 )
 
 
 ------
--- Checks if the index is at the last position in the tableau.
+-- Sets the element in the position (i,j) of the young diagram.
+-- i: row
+-- j: column 
 ------
-isLastIndex = method(TypicalValue => Boolean)
-isLastIndex(YoungTableau) := tableau -> (
-    l:=tableau#index;
-    l#2 ==sum(toList tableau#partition)-1
+YoungTableau_Sequence = (tableau,pos,e)->(
+    (i,j):=pos;
+    if(i < #(tableau#partition)) then (
+        if(j < tableau#partition#i) then ( 
+            ind := sum (toList tableau#partition)_{0..(i-1)};
+            tableau#values#(ind+j)= e;
+        )
+        else (error "Index out of bounds ");
+    
+    )
+    else( error "Index out of bounds" );
+    e
+    
+    )
+
+------
+-- Gives a list of all the elements in the row i 
+------
+YoungTableau^ZZ := (tableau,i) -> (
+    ans:=0;
+    if i < #(tableau#partition) then (
+        ind := sum (toList tableau#partition)_{0..(i-1)};
+    	ans = (toList tableau#values)_{(ind..(ind + (tableau#partition#i)-1))};   
+    )
+    else error "Index out of bounds";
+    ans
+    )
+
+------
+-- Gives a list of all the elements in the column i 
+------
+YoungTableau_ZZ := (tableau,i) -> (
+    ans:= 0;
+    if -1< i and i < tableau#partition#0 then (
+        ind:= 0;
+        ans = new MutableList;
+        for j to #(tableau#partition)-1 when (tableau#partition#j > i) do(
+            ans#j = tableau#values#(ind+i);
+            ind = ind+(tableau#partition#j);
+        );
+        ans = toList ans;
+	ans
+    )
 )
 
 ------
--- This method adds an element to the tableau in the position where the index is located
--- and sets the index to the next position.
+-- A method to give a graphical representation of a Young diagram. This method saves the
+-- diagram in a mutable matrix and then prints the matrix. 
 ------
-addElement = method(TypicalValue => Boolean)
-addElement(ZZ,YoungTableau) := (tableau, n) -> (
-    i := tableau#index#2;
-    tableau#values#i = n;
-    tableau = nextIndex(tableau);
-    tableau
+net YoungTableau := tableau ->(
+    l := tableauToList tableau;
+    corner := #(tableau#partition) ;
+    tableauNet:= "|" ;
+    for i to corner-2 do tableauNet = tableauNet || "|"; 
+    
+    for i to (tableau#partition#0)-1 do ( 
+	column:= tableau_i;
+	columnString := " "|column#0;
+	for j from 1 to #column-1 do columnString = columnString|| " "|column#j;
+	for j from #column to corner -1 do columnString = columnString || " |" ;
+    	corner = #column;
+	tableauNet = tableauNet|columnString;
+	);
+    columnString := " |";
+    for i to corner-2 do columnString= columnString || " |"; 
+    tableauNet = tableauNet | columnString;
+    tableauNet
 )
 
 
+
 ------
--- Changes the index to the given index.
+-- TableauList
 ------
-setIndex = method(TypicalValue =>YoungTableau)
-setIndex(List, YoungTableau) := (L,tableau)->(
-    tableau#index = L;
-    tableau
+
+   
+--  This object represents a list of young tableaus. The tableaus are store in an d times n
+-- mutable matrix where d is a bound for the numbers of tableaus and n is the size of the
+-- Its variables are
+-- Matrix: The matrix that stores the tableau
+-- Partition: The partition that gives the shape of the Young diagram
+-- Length: The numbers of Young Tableus store in the list.
+
+--An advantege of this storages methods is that the tableau is represented as the permutation
+-- that would be necessary to get that tableau.
+
+-- This is useful to calculate things like the Specht polynomials.
+
+
+-- Constructors
+
+TableauList = new Type of MutableHashTable
+tableauList = method(TypicalValue => TableauList)
+
+tableauList Partition :=    p-> (
+lista := new TableauList;
+lista#partition = p;
+lista#matrix = mutableMatrix(ZZ,multinomial(sum(toList p),p),sum(toList p));
+lista#length = 0;
+lista
 )
+
+
+tableauList (Partition,ZZ) :=    (p,n)-> (
+lista := new TableauList;
+lista#partition = p;
+lista#matrix = mutableMatrix(ZZ,n,sum(toList p));
+lista#length = 0;
+lista
+)
+
+
+
+-- Methods
+
+------
+-- Prints the young diagrams that are store in the list.
+------
+
+toListOfTableaux = method()
+toListOfTableaux TableauList := tableaux -> (
+    apply(tableaux#length,i-> youngTableau(tableaux#partition,tableaux#matrix^{i}))
+    )
+
+------
+-- Adds a tableau to the list    .
+------
+addTableau = method(TypicalValue => ZZ)
+addTableau(YoungTableau,TableauList):= (tableau,tableaux) ->(
+   scan(0..sum(toList tableau#partition)-1, i-> (tableaux#matrix)_(tableaux#length,i) = tableau#values#i);
+   tableaux#length = tableaux#length+1;
+   tableaux
+)
+
+addTableau(List,TableauList):= (tableau,tableaux) -> (
+    scan(0..sum(toList tableaux#partition)-1, i-> (tableaux#matrix)_(tableaux#length,i) = tableau#i);
+   tableaux#length = tableaux#length+1;
+   tableaux
+    )
+
+net TableauList := tableaux -> (
+    net toListOfTableaux tableaux
+    )
+
+------
+-- Retrieves a tableau from the list
+------
+
+TableauList^ZZ := (tableaux,n) -> (
+     youngTableau(tableaux#partition,flatten entries tableaux#matrix^{n})
+    ) 
+
+
+
+
+-- Methods
+
+-----
+-- This method calculates the hook length formula for partitions 
+-----
+hookLengthFormula = method(TypicalValue =>ZZ)
+hookLengthFormula Partition := parti -> (
+    
+    prod := (sum toList parti)!;
+    conj:= conjugate parti;
+   
+   for i to #parti-1 do (
+       for j to parti#i-1 do(
+	   prod = prod//(parti#i-j+conj#j-i-1);
+	   );
+       
+       );
+        prod
+)
+
+
+cycleDecomposition = method()
+cycleDecomposition List := perm ->(
+    visited:= new MutableList;
+    for i to #perm-1 do (visited#i = 0);
+    
+    ind:= 0;
+    visited#(ind) = 1;
+    cycles:= {};
+    while ind<#perm do (
+        newInd:= perm#(ind);
+        cycle := while newInd != ind list newInd do(
+            visited#(newInd) = 1;
+            newInd = perm#(newInd);
+        );
+    	cycle = prepend(ind,cycle);
+    	cycles = append(cycles,cycle);
+        
+        for i from ind to #perm-1 when visited#i==1 do 
+        (
+            ind = i;
+        );
+        ind = ind+1;
+        visited#(ind) = 1;
+    );
+    cycles
+)
+
+conjugacyClass = method()
+conjugacyClass List := perm -> (
+    
+    cycles:= cycleDecomposition perm;
+    new Partition from (reverse sort apply (cycles, c -> #c))
+    )
 
 ------
 -- Given a tableau with an index, it gets the element thats to the right of the element
@@ -328,366 +520,7 @@ maxPossibleNumbersSemistandard(ZZ,YoungTableau):= (n,tableau)-> (
   s
     )
 
-------
--- Gets the element in the position (i,j) of the young diagram.
--- i: row
--- j: column 
-------
 
-
-YoungTableau_Sequence:= (tableau,pos) -> (
-    if #pos != 2 then error "expected a sequence of length two"
-    
-else(
-    (i,j) := pos;
-    ans:= 0;
-    if(i < #(tableau#partition)) then (
-        
-        if(j < tableau#partition#i) then ( 
-            ind := sum (toList tableau#partition)_{0..(i-1)};
-            ans = tableau#values#(ind+j);
-        )
-        else (error "Index out of bounds ");
-    
-    )
-    else( error "Index out of bounds" );
-    ans  
-    )
-
-)
-
-
-------
--- Sets the element in the position (i,j) of the young diagram.
--- i: row
--- j: column 
-------
-YoungTableau_Sequence = (tableau,pos,e)->(
-    (i,j):=pos;
-    if(i < #(tableau#partition)) then (
-        if(j < tableau#partition#i) then ( 
-            ind := sum (toList tableau#partition)_{0..(i-1)};
-            tableau#values#(ind+j)= e;
-        )
-        else (error "Index out of bounds ");
-    
-    )
-    else( error "Index out of bounds" );
-    e
-    
-    )
-
-
-next = method()
-next YoungTableau:= tableau -> (
-    
-    ind:= tableau#index;
-    ans:= tableau#values#(ind#2);
-    nextIndex(tableau);
-    )
-
-------
--- Gives a list of all the elements in the row i 
-------
-YoungTableau^ZZ := (tableau,i) -> (
-    ans:=0;
-    if i < #(tableau#partition) then (
-        ind := sum (toList tableau#partition)_{0..(i-1)};
-    	ans = (toList tableau#values)_{(ind..(ind + (tableau#partition#i)-1))};   
-    )
-    else error "Index out of bounds";
-    ans
-    )
-
-------
--- Gives a list of all the elements in the column i 
-------
-YoungTableau_ZZ := (tableau,i) -> (
-    ans:= 0;
-    if -1< i and i < tableau#partition#0 then (
-        ind:= 0;
-        ans = new MutableList;
-        for j to #(tableau#partition)-1 when (tableau#partition#j > i) do(
-            ans#j = tableau#values#(ind+i);
-            ind = ind+(tableau#partition#j);
-        );
-        ans = toList ans;
-	ans
-    )
-)
-
-------
--- A method to give a graphical representation of a Young diagram. This method saves the
--- diagram in a mutable matrix and then prints the matrix. 
-------
-net YoungTableau := tableau ->(
-    l := tableauToList tableau;
-    corner := #(tableau#partition) ;
-    tableauNet:= "|" ;
-    for i to corner-2 do tableauNet = tableauNet || "|"; 
-    
-    for i to (tableau#partition#0)-1 do ( 
-	column:= tableau_i;
-	columnString := " "|column#0;
-	for j from 1 to #column-1 do columnString = columnString|| " "|column#j;
-	for j from #column to corner -1 do columnString = columnString || " |" ;
-    	corner = #column;
-	tableauNet = tableauNet|columnString;
-	);
-    columnString := " |";
-    for i to corner-2 do columnString= columnString || " |"; 
-    tableauNet = tableauNet | columnString;
-    tableauNet
-)
-
-printTableau = method()
-printTableau (YoungTableau,ZZ) := (tableau,n) ->(
-    matrix:= mutableMatrix(QQ,#(tableau#partition),tableau#partition#0);
-    for i to numRows (matrix) -1 do(
-    	row:= getRow(tableau,i);
-	for j to #row-1 do(
-	    matrix_(i,j)= row#j;    
-	);	
-    );
-    print("");
-    print(matrix,n);
-)
-
-
-------
--- Prints two young diagrams . 
-------
-printTableau(YoungTableau, YoungTableau):= (tableau1, tableau2)-> (
-    matrix1:= mutableMatrix(QQ,#(tableau1#partition),tableau1#partition#0);
-    for i to numRows (matrix1)-1 do(
-    	row:= getRow(tableau1,i);
-	for j to #row-1 do(
-	    matrix1_(i,j)= row#j;    
-	);	
-    );
-    matrix2:= mutableMatrix(QQ,#(tableau2#partition),tableau2#partition#0);
-    for i to numRows (matrix2)-1 do(
-    	row:= getRow(tableau2,i);
-	for j to #row-1 do(
-	    matrix2_(i,j)= row#j;    
-	);	
-    );
-    print("");
-    print(matrix1,matrix2);
-    
-    
-    )
-
-
-------
--- TableauList
-------
-
-   
---  This object represents a list of young tableaus. The tableaus are store in an d times n
--- mutable matrix where d is a bound for the numbers of tableaus and n is the size of the
--- Its variables are
--- Matrix: The matrix that stores the tableau
--- Partition: The partition that gives the shape of the Young diagram
--- Length: The numbers of Young Tableus store in the list.
-
---An advantege of this storages methods is that the tableau is represented as the permutation
--- that would be necessary to get that tableau.
-
--- This is useful to calculate things like the Specht polynomials.
-
-
--- Constructors
-
-TableauList = new Type of MutableHashTable
-tableauList = method(TypicalValue => TableauList)
-tableauList Partition :=    p-> (
-lista := new TableauList;
-lista#partition = p;
-lista#matrix = mutableMatrix(ZZ,multinomial(sum(toList p),p),sum(toList p));
-lista#length = 0;
-lista
-)
-
-
-tableauList (Partition,ZZ) :=    (p,n)-> (
-lista := new TableauList;
-lista#partition = p;
-lista#matrix = mutableMatrix(ZZ,n,sum(toList p));
-lista#length = 0;
-lista
-)
-
--- Methods
-
-------
--- Prints the young diagrams that are store in the list.
-------
-
-printTableaux = method()
-printTableaux(TableauList):= lista -> (
-    
-    l:= new MutableList;
-    for k to lista#length-1 do(
-	tableau1:= getTableau(lista,k);
-	
-	matrix1:= mutableMatrix(QQ,#(tableau1#partition),tableau1#partition#0);
-    	for i to numRows (matrix1)-1 do(
-    	    row:= getRow(tableau1,i);
-	    for j to #row-1 do(
-	    	matrix1_(i,j)= row#j;    
-		);	
-    	    );
-	l#k = matrix1;
-	);
-    print("");
-    print(toList l);
-)
-
-------
--- Adds a tableau to the list    .
-------
-addTableau = method(TypicalValue => ZZ)
-addTableau(TableauList, YoungTableau):= (tableaux, tableau) ->(
-   scan(0..sum(toList tableau#partition)-1, i-> (tableaux#matrix)_(tableaux#length,i) = tableau#i);
-   tableaux#length = tableaux#length+1;
-   tableaux
-)
-
-------
--- Retrieves a tableau from the list
-------
-getTableau = method(TypicalValue => ZZ)
-getTableau(ZZ,TableauList) := ( n , tableaux) -> (
-    
-    youngTableau(tableaux#partition,flatten entries tableaux#matrix^{n})
-    ) 
-------
--- MultiSet 
-------
-
--- A strucuture that represents a list of elements with possible repetitions as pairs of the
--- the for (a,n) where a is an element and n is the number of times that it appears in the
--- list.
-MultiSet = new Type of MutableHashTable;
-
--- Constructor 
-
-multiSet = method()
-multiSet(List) := (numbers) -> (
-    num:= new MultiSet;
-    for i to #numbers-1 do (
-    	if not member(numbers#i,keys(num)) then
-	    num#(numbers#i) = 0;
-	num#(numbers#i)=num#(numbers#i)+1;    
-    );
-    num#basis = keys(num);
-    num#index = 0;
-    num
-)
-
-setIndex(MultiSet,ZZ):= (numbers, ind) -> (
-      n := -1;
-      if(ind>=0) then(
-      	  for i from ind to #(numbers#basis)-1 when(n<0) do(
-	     j := (numbers#basis)#i;
-	     if(numbers#j!=0) then (n = i); 
-	  );
-      );
-      numbers#index = n;
-)
-
--- Methods
-
------
--- This method codes 
------
-hookLengthFormula = method(TypicalValue =>ZZ)
-hookLengthFormula Partition := parti -> (
-    
-    prod := (sum toList parti)!;
-    m := #parti;
-    if m!= 0 then (
-    for i to parti#0-1 do(
-        mn :=m;
-        for j to m-1 do (
-            r:= parti#(m-j-1)-i;
-            --print (m,i,j,r,prod);
-            prod = prod//(r+j);
-            if(r==1) then mn = m-j-1;
-        );
-        m=mn;
-    
-    );
-);
-    prod
-)
-
------
--- This method codes 
------
-cycleStructure = method(TypicalValue => Partition)
-cycleStructure List := perm ->(
-    ans:= new MutableList;
-    rec:= new MutableList;
-    for i to #perm-1 do (rec#i = 0);
-    
-    m := 0;
-    ind:= 0;
-    rec#(m) = 1;
-    while m<#perm do (
-        n:= perm#(m);
-        length:= 1;
-        while n != m do(
-            rec#(n) = 1;
-            length = length+1;
-            n = perm#(n);
-        );
-        ans#ind = length;
-        ind = ind+1;
-        
-        for i from m to #perm-1 when rec#i==1 do 
-        (
-            m = i;
-        );
-        m = m+1;
-        rec#(m) = 1;
-    );
-    new Partition from (reverse sort toList ans)
-)
-
-copyOfMultiSet = method()
-copyOfMultiSet(MultiSet):=(numbers)->(
-    
-    newList:= new MultiSet;
-    newList#basis = numbers#basis;
-    newList#index = 0;
-    for i to #(numbers#basis)-1 do(
-    	j := (numbers#basis)#i;
-	newList#j = numbers#j;	
-    );
-    newList
-)  
-
-nextIndex(MultiSet):=(numbers)->(
-      n := -2;
-      if(numbers#index>=0) then(
-      	  for i from numbers#index to #(numbers#basis)-1 when(n<0) do(
-	     j:= (numbers#basis)#i;
-	     if numbers#j!=0 then n = i; 
-	  );
-      );
-      numbers#index = n+1;
-      n+1
-)
-
-getElement = method()
-getElement(MultiSet):= (numbers)-> (
-    
-    ind := numbers#index-1;
-    base:= numbers#basis;
-    base#ind
-)
 
 
 -----
@@ -913,7 +746,7 @@ generalizedTableaux(YoungTableau) := (tableau)->(
     maxNumberOfTableaus:=1;
     for i to #(tableau#partition)-1 do (
 	numRow:= getRow(tableau,i);
-	composition:= multiSet(numRow);
+	composition:= tally(numRow);
     	maxNumberOfTableaus=maxNumberOfTableaus*factorial(tableau#partition#i);
 	    
 	for j to #(composition#basis)-1 do(
@@ -924,8 +757,8 @@ generalizedTableaux(YoungTableau) := (tableau)->(
     );
     tableaux :=tableauList(tableau#partition,maxNumberOfTableaus);
     newTableau:= youngTableau(tableau#partition,size:(-1));
-    setIndex({0,0,0},newTableau);
-    nums:= multiSet(getRow(tableau,0));
+    --setIndex({0,0,0},newTableau);
+    nums:= tally(getRow(tableau,0));
     tableaux = recursiveGeneralizedTableaux(tableau,nums,newTableau,tableaux);
     tableaux
 )
@@ -939,7 +772,7 @@ generalizedTableaux(YoungTableau) := (tableau)->(
 -- TODO find a way to put the list of numbers and the tableau as a global variable.
 -----
 recursiveGeneralizedTableaux = method(TypicalValue => TableauList)
-recursiveGeneralizedTableaux(YoungTableau, MultiSet ,YoungTableau,TableauList):= (original,rowNumbers, tableau, tableaux) -> (
+recursiveGeneralizedTableaux(YoungTableau, Tally,YoungTableau,TableauList):= (original,rowNumbers, tableau, tableaux) -> (
     row:= 0;
     col:=0;
     element:=0;
@@ -948,7 +781,7 @@ recursiveGeneralizedTableaux(YoungTableau, MultiSet ,YoungTableau,TableauList):=
 	--Case that the we need to find the only possible number 
         row = (tableau#index)#0;
 	col = (tableau#index)#1;
-	if(col==0) then (rowNumbers = multiSet(getRow(original,row)));
+	if(col==0) then (rowNumbers = tally(getRow(original,row)));
 	nextIndex(rowNumbers);
 	element = getElement(rowNumbers);
 	if(notInColumn(tableau,element)) then(
@@ -960,7 +793,7 @@ recursiveGeneralizedTableaux(YoungTableau, MultiSet ,YoungTableau,TableauList):=
     (
 	row = (tableau#index)#0;
 	col = (tableau#index)#1;
-	if(col==0) then (rowNumbers = multiSet(getRow(original,row)));
+	if(col==0) then (rowNumbers = tally(getRow(original,row)));
 	--change name of row basis
 	
 	while nextIndex(rowNumbers) != (-1) do (
@@ -970,8 +803,8 @@ recursiveGeneralizedTableaux(YoungTableau, MultiSet ,YoungTableau,TableauList):=
 		
                 tableauNuevo := youngTableau(tableau);
 		addElement(tableauNuevo,element);
-		rowNumbers2 := copyOfMultiSet(rowNumbers);
-		setIndex(rowNumbers2,0);
+		rowNumbers2 := tally(rowNumbers);
+		--setIndex(rowNumbers2,0);
 		rowNumbers2#element = rowNumbers2#element-1;
                 tableaux =   recursiveGeneralizedTableaux(original,rowNumbers2,tableauNuevo,tableaux);
             );
@@ -1389,7 +1222,7 @@ garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
 	    	setElement(newTableau,j-1,a,AB#(combination#j));
 		);
 	    sign:=orderColumnsTableau(newTableau);
-	    newTableaux#(i-1) = (newTableau,-coef*sign*signPermutation(cycleStructure(combination)));
+	    newTableaux#(i-1) = (newTableau,-coef*sign*signPermutation(conjugacyClass(combination)));
       	    );
 	
 	ans = toList newTableaux;
@@ -1611,7 +1444,6 @@ cardinalityOfConjugacyClass(Partition) := p -> (
 -- A method which gives a partition as a multiset
 -- TODO: Implement with the class MultiSet.
 -----
-differentElementsInPartition = method(TypicalValue => MutableHashTable)
 differentElementsInPartition(Partition) := p -> ( 
 exponent := new MutableHashTable;
     val := p#0;
@@ -1666,7 +1498,9 @@ irreducibleSpechtRepresentation(Partition, PolynomialRing) := (parti, R)-> (
 	lista#i = matrixRepresentation(perms#i,parti,R)
     );
     toList(lista)
-) 
+)
+
+
+
 
     	
-   
