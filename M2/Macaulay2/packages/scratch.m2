@@ -34,6 +34,103 @@ addElement(ZZ,YoungTableau) := (tableau, n) -> (
 )
 
 
+
+addElement = method()
+addElement (YoungTableau,MutableHashTable,ZZ) := (tableau,ind,e)-> (
+    tableau#values#(ind#index) = e;
+    p := tableau#partition;
+    if p#(ind#row)-1==(ind#column)  then (
+	ind#row = ind#row+1;
+	ind#column = 0;
+	ind#index = ind#index+1)
+    else (
+	ind#column = ind#column+1;
+	ind#index = ind#index+1
+	);
+    tableau
+    )
+
+
+recursiveSemistandardTableaux(ZZ,YoungTableau,TableauList,HashTable):= (maxNumber, tableau, tableaux,ind) -> (
+    if(ind#index == sum toList tableau#partition - 1) then 
+    (
+	maximum:=maxPossibleNumbersSemistandard(tableau,ind,maxNumber);
+	for i from max(previousElementInRow(tableau,ind),0,previousElementInColumn(tableau,ind)+1) to maximum do(
+           tableau#values#(ind#index)= i;
+           tableaux = addTableau(tableaux,tableau);
+	   );
+       
+    ) else
+    (
+	newInd:= nextIndex (ind,tableau#partition);
+	maximum= maxPossibleNumbersSemistandard(tableau,ind,maxNumber);
+        for i from max(previousElementInRow(tableau,ind),0 ,previousElementInColumn(tableau,ind)+1) to maximum do(
+        
+             
+	     tableau#values#(ind#index)= i;
+	    -- print(tableauNuevo#index);
+	     recursiveSemistandardTableaux(maxNumber,tableau,tableaux,newInd);
+        );  
+    );
+    tableaux
+)
+
+recursiveTabloids(List,YoungTableau , TableauList,HashTable):= (numbers, tableau, tableaux,ind) -> (
+    if(ind#index == sum toList tableau#partition - 1) then 
+    (
+       --print(numbers);
+       if previousElementInRow(tableau,ind)< numbers#0 then
+       ( 
+           tableau#values#(ind#index) = numbers#0;
+           addTableau(tableaux,tableau);
+	   --print net tableau
+       )
+    ) else
+    (
+	maximum:= maxPossibleNumber(tableau,ind);
+	newInd:= nextIndex (ind,tableau#partition);
+      for i from 0 to #numbers-1 when (numbers#i < maximum+1)  do (
+        
+            if(numbers#i>previousElementInRow(tableau,ind)) then
+            (
+                --tableauNuevo := youngTableau(tableau);
+		
+		tableau#values#(ind#index) = numbers#i;
+		numbers2 := delete(numbers#i,numbers);
+		--print net tableau;
+                recursiveTabloids(numbers2,tableau,tableaux,newInd);
+            );
+        );  
+    );
+    tableaux
+)
+
+recursiveStandardTableaux(List,YoungTableau,TableauList,HashTable):= (numbers, tableau, tableaux,ind) -> (
+    if(ind#index == sum toList tableau#partition - 1) then 
+    (
+       if (previousElementInRow(tableau,ind) < numbers#0) and (previousElementInColumn(tableau,ind) < numbers#0) then
+       ( 
+           tableau#values#(ind#index) = numbers#0;
+           addTableau(tableaux,tableau);
+       )
+    ) else
+    (
+	maximum:= maxPossibleNumberStandard(tableau,ind);
+        newInd:= nextIndex (ind,tableau#partition);
+	for i from 0 to #numbers-1 when (numbers#i < maximum+1)  do (
+        
+            if(numbers#i>previousElementInRow(tableau,ind) and numbers#i>previousElementInColumn(tableau,ind) ) then
+            (
+                --tableauNuevo := youngTableau(tableau);
+		tableau#values#(ind#index)= numbers#i;
+		numbers2 := delete(numbers#i,numbers);
+                recursiveStandardTableaux(numbers2,tableau,tableaux,newInd);
+            );
+        );  
+    );
+    tableaux
+)
+
 ------
 -- Changes the index to the given index.
 ------

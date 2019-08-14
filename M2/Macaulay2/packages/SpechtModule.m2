@@ -19,37 +19,24 @@ export {"youngTableau"}
 export {"tableauToList"}
 export {"listToTableau"}
 
+export {"TableauList"}
+export {"tableauList"}
+export {"toListOfTableaux"}
 
-export {"isLastIndex"}
-export {"nextIndex"}
+export {"tabloids"}
+export {"standardTableaux"}
+export {"semistandardTableaux"}
+
+
+export {"changeFilling"}
+
 
 export {"hookLengthFormula"}
 export {"cycleDecomposition"}
 export {"conjugacyClass"}
 
-export {"changeElement"}
-export {"addElement"}
-export {"previousElementInRow"}
-export {"previousElementInColumn"}
-export {"getRow"}
-export {"getColumn"}
-export {"getElement"}
-export {"setElement"}
-export {"next"}
-export {"printTableau"}
-export {"printTableaux"}
-export {"changeFilling"}
-
-
-export {"TableauList"}
-export {"tableauList"}
-export {"toListOfTableaux"}
-
 export {"addTableau"}
 export {"getTableau"}
-export {"tabloids"}
-export {"standardTableaux"}
-export {"semistandardTableaux"}
 export {"matrixRepresentation"}
 export {"generalizedTableaux"}
 
@@ -70,6 +57,8 @@ export {"straighteningAlgorithm"}
 
 export {"firstRowDescent"}
 export {"columnDominance"}
+
+protect \ {row,column}
 ---
 --YoungTableau
 ---
@@ -97,7 +86,6 @@ youngTableau = method(TypicalValue => YoungTableau)
 youngTableau Partition := p -> (
     tableau:= new YoungTableau;
     tableau#partition = p;
-    tableau#index = {0,0,0};
     tableau#values = new MutableList from ((sum toList p):0) ;
     tableau
 )
@@ -276,6 +264,7 @@ YoungTableau_ZZ := (tableau,i) -> (
     )
 )
 
+
 ------
 -- A method to give a graphical representation of a Young diagram. This method saves the
 -- diagram in a mutable matrix and then prints the matrix. 
@@ -359,13 +348,13 @@ toListOfTableaux TableauList := tableaux -> (
 -- Adds a tableau to the list    .
 ------
 addTableau = method(TypicalValue => ZZ)
-addTableau(YoungTableau,TableauList):= (tableau,tableaux) ->(
+addTableau(TableauList,YoungTableau):= (tableaux,tableau) ->(
    scan(0..sum(toList tableau#partition)-1, i-> (tableaux#matrix)_(tableaux#length,i) = tableau#values#i);
    tableaux#length = tableaux#length+1;
    tableaux
 )
 
-addTableau(List,TableauList):= (tableau,tableaux) -> (
+addTableau(TableauList,List):= (tableaux,tableau) -> (
     scan(0..sum(toList tableaux#partition)-1, i-> (tableaux#matrix)_(tableaux#length,i) = tableau#i);
    tableaux#length = tableaux#length+1;
    tableaux
@@ -379,67 +368,11 @@ net TableauList := tableaux -> (
 -- Retrieves a tableau from the list
 ------
 
-TableauList^ZZ := (tableaux,n) -> (
+TableauList_ZZ := (tableaux,n) -> (
      youngTableau(tableaux#partition,flatten entries tableaux#matrix^{n})
     ) 
 
-
-
-
 -- Methods
-
------
--- This method calculates the hook length formula for partitions 
------
-hookLengthFormula = method(TypicalValue =>ZZ)
-hookLengthFormula Partition := parti -> (
-    
-    prod := (sum toList parti)!;
-    conj:= conjugate parti;
-   
-   for i to #parti-1 do (
-       for j to parti#i-1 do(
-	   prod = prod//(parti#i-j+conj#j-i-1);
-	   );
-       
-       );
-        prod
-)
-
-
-cycleDecomposition = method()
-cycleDecomposition List := perm ->(
-    visited:= new MutableList;
-    for i to #perm-1 do (visited#i = 0);
-    
-    ind:= 0;
-    visited#(ind) = 1;
-    cycles:= {};
-    while ind<#perm do (
-        newInd:= perm#(ind);
-        cycle := while newInd != ind list newInd do(
-            visited#(newInd) = 1;
-            newInd = perm#(newInd);
-        );
-    	cycle = prepend(ind,cycle);
-    	cycles = append(cycles,cycle);
-        
-        for i from ind to #perm-1 when visited#i==1 do 
-        (
-            ind = i;
-        );
-        ind = ind+1;
-        visited#(ind) = 1;
-    );
-    cycles
-)
-
-conjugacyClass = method()
-conjugacyClass List := perm -> (
-    
-    cycles:= cycleDecomposition perm;
-    new Partition from (reverse sort apply (cycles, c -> #c))
-    )
 
 ------
 -- Given a tableau with an index, it gets the element thats to the right of the element
@@ -447,11 +380,10 @@ conjugacyClass List := perm -> (
 -- index points to first element in a row, it return 0)
 ------
 previousElementInRow = method(TypicalValue => ZZ)
-previousElementInRow(YoungTableau):= (tableau)->(
+previousElementInRow(YoungTableau,HashTable):= (tableau,ind)->(
     
     e := -1;
-    ind := tableau#index;
-    if ind#1!=0 then e = tableau#values#(ind#2-1);
+    if ind#column!=0 then e = tableau#values#(ind#index-1);
     e
 )
 
@@ -461,12 +393,22 @@ previousElementInRow(YoungTableau):= (tableau)->(
 -- index points to an element in the first row, it return 0).
 ------
 previousElementInColumn = method(TypicalValue => ZZ)
-previousElementInColumn(YoungTableau):= (tableau)->(
+previousElementInColumn(YoungTableau,HashTable):= (tableau,ind)->(
     e:=-1;
-    ind := tableau#index;
     p:= tableau#partition;
-    if ind#0!=0 then e = tableau#values#(ind#2-p#(ind#0-1));
+    if ind#row!=0 then e = tableau#values#(ind#index-p#(ind#row-1));
     e
+)
+
+nextIndex = method()
+nextIndex (HashTable,Partition)  := (ind,p)->(
+    
+    if p#(ind#row)-1==(ind#column)  then (
+	ind = hashTable {row => ind#row+1,column => 0, index => ind#index+1 })
+    else (
+	ind = hashTable {row => ind#row,column => ind#column+1, index => ind#index+1 }
+	);
+    ind
 )
 
 ------
@@ -481,45 +423,11 @@ previousElementInColumn(YoungTableau):= (tableau)->(
  
 ------
 maxPossibleNumber = method(TypicalValue => ZZ)
-maxPossibleNumber(YoungTableau):= (tableau) ->(
-  ind:=tableau#index;
-  s:=sum(toList tableau#partition)-(tableau#partition)#(ind#0);
-  s= s+ind#1;
+maxPossibleNumber(YoungTableau,HashTable):= (tableau,ind) ->(
+  s:=sum(toList tableau#partition)-(tableau#partition)#(ind#row);
+  s= s+ind#column;
   s
 )
-
-------
--- This method is used in the method that generates the list of standard tableaux. Given
--- a tableau which has been partially filled with numbers, this method calculates
--- the maximum number which could be put in the next empty slot, so that a valid standard
--- tableau with those numbers exists. 
-
--- Specifically it counts the numbers of elements in the subdiagram with positions (i,j)
--- Since the element put at this position must be the smallest of all elements in ths diagram.
--- This gives a very good bound on the elements that can go in here.
-------
-maxPossibleNumberStandard = method(TypicalValue => ZZ)
-maxPossibleNumberStandard(YoungTableau):= (tableau) ->(
-  ind:=tableau#index;
-  s:=sum(toList tableau#partition);
-  for i from ind#0 to #(tableau#partition)-1 when ((tableau#partition)#(i) > ind#1 ) do (    
-     s = s - (tableau#partition)#(i)+ind#1;
-  );
-  --s = s+1;
-  s
-)
-
-
-maxPossibleNumbersSemistandard = method(TypicalValue => ZZ)
-maxPossibleNumbersSemistandard(ZZ,YoungTableau):= (n,tableau)-> (
-    
-  ind:=tableau#index;
-  s:=n;
-  s = s - #(tableau_(ind#1))+ind#0;
-  --s = s+1;
-  s
-    )
-
 
 
 
@@ -531,12 +439,13 @@ maxPossibleNumbersSemistandard(ZZ,YoungTableau):= (n,tableau)-> (
 -----
 tabloids = method(TypicalValue => TableauList)
 tabloids(Partition) := p->(
-    size:=sum toList p;
+    size:= multinomial p;
     tableaux :=tableauList(p,size);
     if(size!= 0) then(
-    nums := toList(0..size-1);
+    nums := toList(0..sum toList p - 1);
     tableau:= youngTableau(p);
-    tableaux = recursiveTabloids(nums,tableau,tableaux);
+    ind := hashTable {row=> 0, column => 0, index => 0};
+    recursiveTabloids(nums,tableau,tableaux,ind);
     );
     tableaux
 )
@@ -550,34 +459,52 @@ tabloids(Partition) := p->(
 -- In this way the method effectively goes through all posible fillings of the tableau.
 -- TODO find a way to put the list of numbers and the tableau as a global variable.
 -----
+
+--- No need to create a new tableau in each step, just use parameter accumulation
 recursiveTabloids = method(TypicalValue => TableauList)
-recursiveTabloids(List,YoungTableau , TableauList):= (numbers, tableau, tableaux) -> (
-    if(isLastIndex(tableau)) then 
-    (
-       print(numbers);
-       if previousElementInRow(tableau)< numbers#0 then
-       ( 
-           tableau = addElement(tableau,numbers#0);
-           tableaux = addTableau(tableaux,tableau);
-	   printTableau(tableau)
-       )
-    ) else
-    (
-	maximum:= maxPossibleNumber(tableau);
-      for i from 0 to #numbers-1 when (numbers#i < maximum+1)  do (
+
+recursiveTabloids(List,YoungTableau , TableauList,HashTable):= (numbers, tableau, tableaux,ind) -> (
+    maximum:= maxPossibleNumber(tableau,ind);
+    newInd:= nextIndex (ind,tableau#partition);
+    for i from 0 to #numbers-1 when (numbers#i < maximum+1)  do (
         
-            if(numbers#i>previousElementInRow(tableau)) then
+            if(numbers#i>previousElementInRow(tableau,ind)) then
             (
-                tableauNuevo := youngTableau(tableau);
-		addElement(tableauNuevo,numbers#i);
+                --tableauNuevo := youngTableau(tableau);
+		
+		tableau#values#(ind#index) = numbers#i;
 		numbers2 := delete(numbers#i,numbers);
-		printTableau(tableauNuevo);
-                tableaux = recursiveTabloids(numbers2,tableauNuevo,tableaux);
+		--print net tableau;
+                if newInd#index == sum toList tableau#partition then addTableau(tableaux,tableau)
+		else recursiveTabloids(numbers2,tableau,tableaux,newInd);
             );
         );  
-    );
     tableaux
+    )
+
+
+
+------
+-- This method is used in the method that generates the list of standard tableaux. Given
+-- a tableau which has been partially filled with numbers, this method calculates
+-- the maximum number which could be put in the next empty slot, so that a valid standard
+-- tableau with those numbers exists. 
+
+-- Specifically it counts the numbers of elements in the subdiagram with positions (i,j)
+-- Since the element put at this position must be the smallest of all elements in ths diagram.
+-- This gives a very good bound on the elements that can go in here.
+------
+maxPossibleNumberStandard = method(TypicalValue => ZZ)
+maxPossibleNumberStandard(YoungTableau,HashTable):= (tableau,ind) ->(
+  s:=sum(toList tableau#partition);
+  for i from ind#row to #(tableau#partition)-1 when (tableau#partition#i > ind#column ) do (    
+     s = s - (tableau#partition#i)+ind#column;
+  );
+  --s = s+1;
+  s
 )
+
+
 
 -----
 -- Method that generates the list of all standard tableaux of a given partition.
@@ -591,7 +518,8 @@ standardTableaux(Partition) := p->(
     if size != 0 then(
     nums := toList(0..size-1);
     tableau:= youngTableau(p);
-    tableaux = recursiveStandardTableaux(nums,tableau,tableaux);
+    ind := hashTable {row=> 0, column => 0, index => 0};
+    recursiveStandardTableaux(nums,tableau,tableaux,ind);
     );
     tableaux
 )
@@ -605,31 +533,32 @@ standardTableaux(Partition) := p->(
 -- TODO find a way to put the list of numbers and the tableau as a global variable.
 -----
 recursiveStandardTableaux = method(TypicalValue => TableauList)
-recursiveStandardTableaux(List,YoungTableau,TableauList):= (numbers, tableau, tableaux) -> (
-    if(isLastIndex(tableau)) then 
-    (
-       if (previousElementInRow(tableau) < numbers#0) and (previousElementInColumn(tableau) < numbers#0) then
-       ( 
-           tableau = addElement(tableau,numbers#0);
-           tableaux = addTableau(tableaux,tableau);
-       )
-    ) else
-    (
-	maximum:= maxPossibleNumberStandard(tableau);
-        for i from 0 to #numbers-1 when (numbers#i < maximum+1)  do (
+recursiveStandardTableaux(List,YoungTableau,TableauList,HashTable):= (numbers, tableau, tableaux,ind) -> (
+    maximum:= maxPossibleNumberStandard(tableau,ind);
+        newInd:= nextIndex (ind,tableau#partition);
+	for i from 0 to #numbers-1 when (numbers#i < maximum+1)  do (
         
-            if(numbers#i>previousElementInRow(tableau) and numbers#i>previousElementInColumn(tableau) ) then
+            if(numbers#i>previousElementInRow(tableau,ind) and numbers#i>previousElementInColumn(tableau,ind) ) then
             (
-                tableauNuevo := youngTableau(tableau);
-		addElement(tableauNuevo,numbers#i);
+                --tableauNuevo := youngTableau(tableau);
+		tableau#values#(ind#index)= numbers#i;
 		numbers2 := delete(numbers#i,numbers);
-                tableaux = recursiveStandardTableaux(numbers2,tableauNuevo,tableaux);
+                if newInd#index == sum toList tableau#partition then addTableau(tableaux,tableau) 
+		else recursiveStandardTableaux(numbers2,tableau,tableaux,newInd);
             );
-        );  
-    );
-    tableaux
+        );
+    tableaux  
 )
 
+
+maxPossibleNumbersSemistandard = method(TypicalValue => ZZ)
+maxPossibleNumbersSemistandard(YoungTableau,HashTable,ZZ):= (tableau,ind,n)-> (
+    
+  s:=n;
+  s = s - #(tableau_(ind#column))+ind#row;
+  --s = s+1;
+  s
+    )
 
 semistandardTableaux = method(TypicalValue => TableauList)
 semistandardTableaux(Partition,ZZ) := (p,n)->(
@@ -638,7 +567,8 @@ semistandardTableaux(Partition,ZZ) := (p,n)->(
     if size!=0 then (
     nums := toList(0..size-1);
     tableau:= youngTableau(p);
-    tableaux = recursiveSemistandardTableaux(n,tableau,tableaux);
+    ind := hashTable {row=> 0, column => 0, index => 0};
+    recursiveSemistandardTableaux(n,tableau,tableaux,ind);
     );
     tableaux
 )
@@ -652,34 +582,23 @@ semistandardTableaux(Partition,ZZ) := (p,n)->(
 -- TODO find a way to put the list of numbers and the tableau as a global variable.
 -----
 recursiveSemistandardTableaux = method(TypicalValue => TableauList)
-recursiveSemistandardTableaux(ZZ,YoungTableau,TableauList):= (maxNumber, tableau, tableaux) -> (
-    if(isLastIndex(tableau)) then 
-    (
-	maximum:=maxPossibleNumbersSemistandard(tableau,maxNumber);
-	for i from max(max(previousElementInRow(tableau),0),previousElementInColumn(tableau)+1) to maximum do(
-          tableauNuevo:= youngTableau(tableau);
-	  --printTableau(tableauNuevo);
-	  addElement(tableauNuevo,i);
-	  --print(tableauNuevo#index);
-           tableaux = addTableau(tableaux,tableauNuevo);
-	   );
-       
-    ) else
-    (
-	maximum= maxPossibleNumbersSemistandard(tableau,maxNumber);
-        for i from max(max(previousElementInRow(tableau),0),previousElementInColumn(tableau)+1) to maximum do(
-        
-             tableauNuevo := youngTableau(tableau);
-	     addElement(tableauNuevo,i);
-	    -- print(tableauNuevo#index);
-	     tableaux = recursiveSemistandardTableaux(maxNumber,tableauNuevo,tableaux);
-        );  
-    );
+recursiveSemistandardTableaux(ZZ,YoungTableau,TableauList,HashTable):= (maxNumber, tableau, tableaux,ind) -> (
+    newInd:= nextIndex (ind,tableau#partition);
+    maximum:= maxPossibleNumbersSemistandard(tableau,ind,maxNumber);
+    for i from max(previousElementInRow(tableau,ind),0 ,previousElementInColumn(tableau,ind)+1) to maximum do(   
+	tableau#values#(ind#index)= i;
+	-- print(tableauNuevo#index);
+	if newInd#index == sum toList tableau#partition then tableaux = addTableau(tableaux,tableau)
+	    else recursiveSemistandardTableaux(maxNumber,tableau,tableaux,newInd);
+        );
     tableaux
-)
+    )
+
+
+
 
 -----
--- This method codes 
+-- This method calculates i(S) for a given tableau
 -----
 indexTableau = method()
 indexTableau(YoungTableau):= tableau -> (
@@ -687,7 +606,7 @@ indexTableau(YoungTableau):= tableau -> (
     rec#(sum(toList tableau#partition)-1)=0;
     ind:=0;
     for i to (tableau#partition#0)-1 do (
-        col := getColumn(tableau,i);
+        col := tableau_i;
         for j from 0 to #col-1 do (
             rec#ind = col#(-j-1);
             ind= ind+1;
@@ -708,8 +627,8 @@ indexTableau(YoungTableau):= tableau -> (
     ans:= youngTableau(tableau#partition);
     ind = 0;
     for i to (tableau#partition#0)-1 do (
-	col := getColumn(tableau,i);
-        for j from 0 to #col-1 do (
+	col := tableau_i;
+        for j from 0 to y#col-1 do (
             setElement(ans, #col-j-1,i,index#ind);
             ind = ind+1
         );
@@ -831,6 +750,60 @@ rowStructure(TableauList):= (tableaux)->(
     M
 )
 
+
+-----
+-- This method calculates the hook length formula for partitions 
+-----
+hookLengthFormula = method(TypicalValue =>ZZ)
+hookLengthFormula Partition := parti -> (
+    
+    prod := (sum toList parti)!;
+    conj:= conjugate parti;
+   
+   for i to #parti-1 do (
+       for j to parti#i-1 do(
+	   prod = prod//(parti#i-j+conj#j-i-1);
+	   );
+       
+       );
+        prod
+)
+
+
+cycleDecomposition = method()
+cycleDecomposition List := perm ->(
+    visited:= new MutableList;
+    for i to #perm-1 do (visited#i = 0);
+    
+    ind:= 0;
+    visited#(ind) = 1;
+    cycles:= {};
+    while ind<#perm do (
+        newInd:= perm#(ind);
+        cycle := while newInd != ind list newInd do(
+            visited#(newInd) = 1;
+            newInd = perm#(newInd);
+        );
+    	cycle = prepend(ind,cycle);
+    	cycles = append(cycles,cycle);
+        
+        for i from ind to #perm-1 when visited#i==1 do 
+        (
+            ind = i;
+        );
+        ind = ind+1;
+        visited#(ind) = 1;
+    );
+    cycles
+)
+
+conjugacyClass = method()
+conjugacyClass List := perm -> (
+    
+    cycles:= cycleDecomposition perm;
+    new Partition from (reverse sort apply (cycles, c -> #c))
+    )
+
 -----
 -- A method which gives a partition as a multiset
 -- TODO: Implement with the class MultiSet.
@@ -863,11 +836,13 @@ multinomial(ZZ, Partition) := (n,p)->(
 
 multinomial( List) := (c)->(
     r:= (sum c)!;
-    for i to #c-1 do r = r/((c#i)!);  
+    for i to #c-1 do r = r//((c#i)!);  
     r
   )
 
-    
+multinomial Partition := p -> (
+    multinomial toList p
+    )    
 -----
 -- This method codes 
 -----
