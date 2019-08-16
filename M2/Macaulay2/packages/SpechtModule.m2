@@ -40,6 +40,9 @@ export {"getTableau"}
 export {"matrixRepresentation"}
 export {"generalizedTableaux"}
 
+export {"readingWord"}
+export {"wordToTableau"}
+
 export {"indexTableau"}
 export {"signPermutation"}
 export {"permutationsFixColumn"}
@@ -52,11 +55,13 @@ export {"orderColumnsTableau"}
 export {"cardinalityOfConjugacyClass"}
 export {"differentElementsInPartition"}
 
+
 export{"multinomial"}
 export {"straighteningAlgorithm"}
 
 export {"firstRowDescent"}
 export {"columnDominance"}
+
 
 protect \ {row,column}
 ---
@@ -595,56 +600,56 @@ recursiveSemistandardTableaux(ZZ,YoungTableau,TableauList,HashTable):= (maxNumbe
     )
 
 
+readingWord = method()
+readingWord YoungTableau := tableau -> (
+    
+    flatten apply (tableau#partition#0, i-> reverse tableau_i)
+    )
 
+wordToTableau = method()
+wordToTableau (Partition,List) := (p,word)->(
+    
+    conj := conjugate p;
+    suma := 0;
+    tableau := youngTableau p;
+    for i to #conj-1 do(
+	scan(conj#i, j -> tableau_((conj#i)-1-j,i)=word#(suma+j));
+	suma = suma+conj#i;
+	);
+    tableau
+    )
+    
 
 -----
 -- This method calculates i(S) for a given tableau
 -----
 indexTableau = method()
 indexTableau(YoungTableau):= tableau -> (
-    rec := new MutableList;
-    rec#(sum(toList tableau#partition)-1)=0;
-    ind:=0;
-    for i to (tableau#partition#0)-1 do (
-        col := tableau_i;
-        for j from 0 to #col-1 do (
-            rec#ind = col#(-j-1);
-            ind= ind+1;
-        );
-    );
-    ind = 0;
-    m:= 0;
+    
+    word := readingWord tableau;
+    ind := 0;
+    m:=0;
     index := new MutableList;
     while m < sum(toList tableau#partition) do(
-        for i to #rec -1 do(
-            if(rec#i == m) then (
+        for i to #word -1 do(
+            if(word#i == m) then (
                 m = m+1;
                 index#i = ind;
                 )
         );
             ind = ind +1;
         );
-    ans:= youngTableau(tableau#partition);
-    ind = 0;
-    for i to (tableau#partition#0)-1 do (
-	col := tableau_i;
-        for j from 0 to y#col-1 do (
-            setElement(ans, #col-j-1,i,index#ind);
-            ind = ind+1
-        );
-    );
-    ans   
+    wordToTableau (tableau#partition,toList index)
 )
 
 ------
 -- Checks whether the element is already stored in the column of a tableau. This method
--- used for the recursive calculation of index tableaus.
+-- used for the recursive calculation of index tableaux.
 ------
 notInColumn = method()
-notInColumn(YoungTableau,ZZ):= (tableau,element ) -> (
+notInColumn(YoungTableau,ZZ,ZZ):= (tableau,col,e) -> (
     ans:= true;
-    col:= (tableau#index)#1;
-    column := getColumn(tableau,col);
+    column := tableau_col;
     for i to #column-1 when  ans and (column#i!=(-1)) do(
     	if( column#i == element  ) then ans= false;	    
     );
