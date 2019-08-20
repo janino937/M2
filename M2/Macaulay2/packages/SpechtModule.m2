@@ -642,23 +642,11 @@ indexTableau(YoungTableau):= tableau -> (
     wordToTableau (tableau#partition,toList index)
 )
 
-------
--- Checks whether the element is already stored in the column of a tableau. This method
--- used for the recursive calculation of index tableaux.
-------
-notInColumn = method()
-notInColumn(YoungTableau,ZZ,ZZ):= (tableau,col,e) -> (
-    ans:= true;
-    column := tableau_col;
-    for i to #column-1 when  ans and (column#i!=(-1)) do(
-    	if( column#i == element  ) then ans= false;	    
-    );
-    ans
-)
 
 
 -----
--- Method that generates the list of all index tableaux of a given Index Tableau.
+-- Method that generates the list of all row permutations of a tableau that result in no repeated number
+-- in any column.
 -- An index tableau can have repetitions of the numbers in its slots.
 -- The method calculates all the different tableaus that can be obtained by permuting the
 -- elements in the rows, in such a way that all elements in the columns are different.
@@ -667,23 +655,14 @@ generalizedTableaux = method()
 generalizedTableaux(YoungTableau) := (tableau)->(
     --Assuming all tableaus have size greater or equal to one.
     size:=sum(toList tableau#partition);	
-    maxNumberOfTableaus:=1;
-    for i to #(tableau#partition)-1 do (
-	numRow:= getRow(tableau,i);
-	composition:= tally(numRow);
-    	maxNumberOfTableaus=maxNumberOfTableaus*factorial(tableau#partition#i);
-	    
-	for j to #(composition#basis)-1 do(
-	    k:= (composition#basis)#j;
-	    maxNumberOfTableaus = maxNumberOfTableaus//factorial(composition#k);
-	       
-	);	
-    );
-    tableaux :=tableauList(tableau#partition,maxNumberOfTableaus);
+    numbers:= apply (#(tableau#partition), i -> new MutableHashTable from tally tableau^i);
+    maxTableaux:=product(numbers, tal->  multinomial( values tal));
+    scan (numbers, i-> print new HashTable from i);
+    print maxTableaux;
+    tableaux :=tableauList(tableau#partition,maxTableaux);
     newTableau:= youngTableau(tableau#partition,size:(-1));
     --setIndex({0,0,0},newTableau);
-    nums:= tally(getRow(tableau,0));
-    tableaux = recursiveGeneralizedTableaux(tableau,nums,newTableau,tableaux);
+    recursiveGeneralizedTableaux((#tableau#partition-1,0),numbers,newTableau,tableaux);
     tableaux
 )
 
@@ -696,45 +675,23 @@ generalizedTableaux(YoungTableau) := (tableau)->(
 -- TODO find a way to put the list of numbers and the tableau as a global variable.
 -----
 recursiveGeneralizedTableaux = method(TypicalValue => TableauList)
-recursiveGeneralizedTableaux(YoungTableau, Tally,YoungTableau,TableauList):= (original,rowNumbers, tableau, tableaux) -> (
-    row:= 0;
-    col:=0;
-    element:=0;
-    if(isLastIndex(tableau)) then 
-    (
-	--Case that the we need to find the only possible number 
-        row = (tableau#index)#0;
-	col = (tableau#index)#1;
-	if(col==0) then (rowNumbers = tally(getRow(original,row)));
-	nextIndex(rowNumbers);
-	element = getElement(rowNumbers);
-	if(notInColumn(tableau,element)) then(
-            
-	    tableau = addElement(tableau,element);
-            tableaux = addTableau(tableaux,tableau);
-       )
-    ) else
-    (
-	row = (tableau#index)#0;
-	col = (tableau#index)#1;
-	if(col==0) then (rowNumbers = tally(getRow(original,row)));
-	--change name of row basis
-	
-	while nextIndex(rowNumbers) != (-1) do (
-	    element= getElement(rowNumbers);
-            if(notInColumn(tableau,element)) then
-            (
-		
-                tableauNuevo := youngTableau(tableau);
-		addElement(tableauNuevo,element);
-		rowNumbers2 := tally(rowNumbers);
-		--setIndex(rowNumbers2,0);
-		rowNumbers2#element = rowNumbers2#element-1;
-                tableaux =   recursiveGeneralizedTableaux(original,rowNumbers2,tableauNuevo,tableaux);
-            );
-        );  
-    );
-    tableaux
+recursiveGeneralizedTableaux(Sequence, List,YoungTableau,TableauList):= (pos,numbers, tableau, tableaux) -> (
+    element:=0; 
+    (row,col):= pos;
+    nextPos := (0,0);
+    if col + 1 == tableau#partition#row then nextPos = (row-1,0) else nextPos = (row,col+1);
+    print nextPos;
+    for j in keys(numbers#row) do (
+	if not any (tableau_col, i-> i == j) then (
+	    tableau_(row,col)=j;
+	    print net tableau;
+	    numbers#row#j = numbers#row#j-1;
+	    if(numbers#row#j == 0 ) then remove (numbers#row, j);
+	    if nextPos#0 == -1 then addTableau(tableaux,tableau) else recursiveGeneralizedTableaux(nextPos,numbers,tableau,tableaux);
+	    if numbers#row#?j then numbers#row#j = numbers#row#j+1 else numbers#row#j = 1;
+	    tableau_(row,col)=-1;
+	    );
+	);   
 )
 
 -----
@@ -832,11 +789,10 @@ exponent := new MutableHashTable;
 -- This method codes 
 -----
 multinomial = method(TypicalValue => ZZ)
-multinomial(ZZ, Partition) := (n,p)->(
+multinomial(Tally) := (p)->(
+    n:= sum p;
     r:= n!;
-    l:= differentElementsInPartition(p);
-    for i to #keys(l)-1 do r = r//(((keys(l))#i)!^(l#((keys(l))#i)));  
-    r
+    r// product (keys p, i-> (i!)^(p#i))
   )
 
 multinomial( List) := (c)->(
@@ -883,7 +839,7 @@ canonicalPermutation(ZZ, List) := (n,per) -> (
 -----
 permutationsFixColumn = method(TypicalValue =>List)
 permutationsFixColumn(YoungTableau,ZZ):= (tableau,col) -> (
-    column:= getColumn(tableau,col);
+    column:= tableau_col;
     perms:= permutations(column);
     n := sum(toList tableau#partition);
     permsFinal := new MutableList;
@@ -897,7 +853,7 @@ permutationsFixColumn(YoungTableau,ZZ):= (tableau,col) -> (
 )
 
 permutationsFixColumn(YoungTableau,ZZ,ZZ):= (tableau,n,col) -> (
-    column:= getColumn(tableau,col);
+    column:= tableau_col;
     perms:= permutations(column);
     permsFinal := new MutableList;
     
@@ -915,7 +871,7 @@ permutationsFixColumn(YoungTableau,ZZ,ZZ):= (tableau,n,col) -> (
 -----
 permutationsFixRow = method(TypicalValue =>List)
 permutationsFixRow(YoungTableau,ZZ):= (tableau, num) -> (
-    row:= getRow(tableau,num);
+    row:= tableau^num;
     perms:= permutations(row);
     n := sum(toList tableau#partition);
     permsFinal := new MutableList;
@@ -931,12 +887,10 @@ permutationsFixRow(YoungTableau,ZZ):= (tableau, num) -> (
 
 
 permutationsFixRow(YoungTableau,ZZ,ZZ):= (tableau,n, num) -> (
-    row:= getRow(tableau,num);
+    row:= tableau^num;
     perms:= permutations(row);
     permsFinal := new MutableList;
-    
     for i to #perms-1 do(
-        
         permsFinal#i = canonicalPermutation(n,perms#i);
     );
     permsFinal = toList permsFinal;
@@ -1177,8 +1131,8 @@ garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
     	conju:= conjugate(tableau#partition);
     	combs:= combinations(conju#a+1,b+1);
     	--print(a,b);
-	A:= getColumn(tableau,a+1);
-    	B:= getColumn(tableau,a);
+	A:= tableau_(a+1);
+    	B:= tableau_a;
 	AB:= new MutableList from (#B+1):0;
      	newTableaux:= new MutableList from (numRows(combs)-1):0;
 	--print (newTableaux, combs);
@@ -1196,10 +1150,10 @@ garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
 	    combination:= flatten entries combs^{i};
 	   -- print(combination);
 	    for j to b do(
-		setElement(newTableau,j,a+1,AB#(combination#j));
+		newTableau_(j,a+1)= AB#(combination#j);
 	    	);
 	    for j from b+1 to conju#a do (  
-	    	setElement(newTableau,j-1,a,AB#(combination#j));
+	    	newTableau(j-1,a) = AB#(combination#j);
 		);
 	    sign:=orderColumnsTableau(newTableau);
 	    newTableaux#(i-1) = (newTableau,-coef*sign*signPermutation(conjugacyClass(combination)));
@@ -1266,7 +1220,7 @@ firstRowDescent YoungTableau := tableau -> (
     (a,b):= (#parti,0);
     for i from 1 to #parti-1 when not fin do(
 	for j to parti#i -1 when not fin do(
-	    if (getElement(tableau,j,i-1) > getElement(tableau,j,i)) then (
+	    if tableau_(j,i-1) > tableau_(j,i) then (
 		    fin = true;
 		    (a,b)=(i-1,j);
 		);
@@ -1285,9 +1239,9 @@ lexicographicalOrder(YoungTableau, YoungTableau):=(tableau1,tableau2) ->(
     
     	for j to tableau1#partition#i-1 when (ans == 0) do (
 	    
-	    if( getElement(tableau1,i,j) < getElement(tableau2,i,j)) then
+	    if tableau1_(i,j) < tableau2_(i,j) then
 	    	(ans=-1)
-	    else if (getElement(tableau1,i,j) > getElement(tableau2,i,j)) then
+	    else if tableau1_(i,j) > tableau2_(i,j) then
 	    	(ans = 1); 
 		
 	    );
@@ -1396,12 +1350,12 @@ orderColumnsTableau(YoungTableau):= tableau -> (
     
     sign:= 1;
     for i to tableau#partition#0-1 do(
-	column:=getColumn(tableau,i);
+	column:=tableau_i;
 	(lista,signColumn):=bubbleSort(column); 
 	
 	for j to #column-1 do(
 	    
-	    setElement(tableau,j,i,lista#j);
+	    tableau(j,i)=lista#j;
 	    );
 	
 	sign = sign*signColumn;

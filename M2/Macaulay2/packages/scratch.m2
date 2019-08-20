@@ -1,3 +1,47 @@
+if(isLastIndex(tableau)) then 
+    (
+	--Case that the we need to find the only possible number 
+        row = (tableau#index)#0;
+	col = (tableau#index)#1;
+	if(col==0) then (rowNumbers = tally(getRow(original,row)));
+	nextIndex(rowNumbers);
+	element = getElement(rowNumbers);
+	if(notInColumn(tableau,element)) then(
+            
+	    tableau = addElement(tableau,element);
+            tableaux = addTableau(tableaux,tableau);
+       )
+    ) else
+    (
+	row = (tableau#index)#0;
+	col = (tableau#index)#1;
+	if(col==0) then (rowNumbers = tally(getRow(original,row)));
+	--change name of row basis
+	
+	while nextIndex(rowNumbers) != (-1) do (
+	    element= getElement(rowNumbers);
+            if(notInColumn(tableau,element)) then
+            (
+		
+                tableauNuevo := youngTableau(tableau);
+		addElement(tableauNuevo,element);
+		rowNumbers2 := tally(rowNumbers);
+		--setIndex(rowNumbers2,0);
+		rowNumbers2#element = rowNumbers2#element-1;
+                tableaux =   recursiveGeneralizedTableaux(original,rowNumbers2,tableauNuevo,tableaux);
+            );
+        );  
+    );
+    tableaux
+
+	for j to #(composition#basis)-1 do(
+	    k:= (composition#basis)#j;
+	    maxNumberOfTableaus = maxNumberOfTableaus//factorial(composition#k);
+	       
+	);	
+    );
+
+
 ------
 -- Given a YoungTableau, it iterates its index so that it seats at the next position in the
 --tableau. This assumes that the tableau if been read by rows.
