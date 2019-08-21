@@ -851,58 +851,11 @@ permutationSign List := p -> (
 
 combinations = method()
 combinations(ZZ,ZZ):= (n,m)->(
-    saved:= new MutableHashTable;
-    saved#matrix = mutableMatrix(ZZ,n!//(m!*(n-m)!),n);
-    saved#size = 0;
-    intermediateCombination := new MutableList from 0..n-1;
-    combinationsRecursive(saved,intermediateCombination,0,m);
-    return matrix(saved#matrix);	
-)    
+    combs:=tabloids new Partition from {m,n-m};
+    apply (combs#length, i-> flatten entries combs#matrix^{i})	
+)   
 
 
-
-----
--- The methos is recursive
-----
-
----
---Apperantly there is no need for a list of numbers
----
-
-combinationsRecursive = method()
-combinationsRecursive(MutableHashTable, MutableList,ZZ,ZZ) := (saved,intermediate, i,m)->(
-    
-    if(i>=m) then(
-	
-	row:=saved#size;
-	k := 0;
-	l := m;
-	for j from 0 to #intermediate-1 do(
-	    if(k>=m or intermediate#k>j) then (
-	    	saved#matrix_(row,l)= j;
-	    	l= l+1;
-	    	)
-	    else (
-		saved#matrix_(row,k)=intermediate#k;
-		k=k+1;
-		);
-	    );
-    	saved#size = row+1;
-	)
-    else(
-	--when #intermediate+k-m
-	ini:= 0;
-	if(i == 0) then ini=0 else ini=intermediate#(i-1)+1; 
-      	for k from ini to #intermediate+i-m  do(
-	    intermediate#(i) = k;	
-	    combinationsRecursive(saved,intermediate,i+1,m);
-	    );
-	);
-    )
-
-----
---Change the algorithms that make the list of tableaux according to this findings.
-----
 
 ---
 straighteningAlgorithm = method(TypicalValue=> List)
@@ -977,7 +930,7 @@ garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
 	for i from 1 to numRows combs -1 do(
 	    newTableau:= youngTableau(tableau#partition,flatten tableauToList tableau);
 	   -- print("OK");
-	    combination:= flatten entries combs^{i};
+	    combination:= combs#{i};
 	   -- print(combination);
 	    for j to b do(
 		newTableau_(j,a+1)= AB#(combination#j);
@@ -1185,7 +1138,7 @@ orderColumnsTableau(YoungTableau):= tableau -> (
 	
 	for j to #column-1 do(
 	    
-	    tableau(j,i)=lista#j;
+	    tableau_(j,i)=lista#j;
 	    );
 	
 	sign = sign*signColumn;
