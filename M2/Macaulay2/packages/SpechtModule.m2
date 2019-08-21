@@ -21,34 +21,35 @@ export {"listToTableau"}
 
 export {"TableauList"}
 export {"tableauList"}
+export {"addTableau"}
 export {"toListOfTableaux"}
 
 export {"tabloids"}
 export {"standardTableaux"}
 export {"semistandardTableaux"}
+export {"rowPermutationTableaux"}
 
+export {"indexTableau"}
 
 export {"changeFilling"}
-
 
 export {"hookLengthFormula"}
 export {"cycleDecomposition"}
 export {"conjugacyClass"}
 
-export {"addTableau"}
-export {"getTableau"}
 export {"matrixRepresentation"}
-export {"generalizedTableaux"}
 
 export {"readingWord"}
 export {"wordToTableau"}
 
-export {"indexTableau"}
-export {"signPermutation"}
-export {"permutationsFixColumn"}
-export {"permutationsFixRow"}
+export {"extendedPermutations"}
+export {"directProductOfPermutations"}
+
 export {"columnStabilizer"}
 export {"rowStabilizer"}
+
+export {"signPermutation"}
+
 export {"combinations"}
 export {"garnirElement"}
 export {"orderColumnsTableau"}
@@ -62,7 +63,10 @@ export {"straighteningAlgorithm"}
 export {"firstRowDescent"}
 export {"columnDominance"}
 
-
+export {"permutationsFixColumn"}
+export {"permutationsFixRow"}
+export {"productPermutationsList"}
+export {"permutationSign"}
 protect \ {row,column}
 ---
 --YoungTableau
@@ -99,11 +103,7 @@ youngTableau(Partition,List):= (p,L)->(
     if(sum toList p != #L) then error " Partition size does not match with the length of the list L";
     tableau:= new YoungTableau;
     tableau#partition =p;
-    tableau#index = {0,0,0};
-    if #L != 0 then (
-    tableau#index = {#p-1,(last p)-1,sum(toList p)};
     tableau#values = new MutableList from L;
-    );
     tableau
 )
 
@@ -117,11 +117,7 @@ youngTableau(Partition,MutableList):= (p,L)->(
     if(sum toList p != #L) then error " Partition and List size do not match";
     tableau:= new YoungTableau;
     tableau#partition =p;
-    tableau#index = {0,0,0};
-    if #L!= 0 then (
-    tableau#index = {#p-1,(last p)-1,sum(toList p)};
     tableau#values = L;
-    );
     tableau
 )
 
@@ -130,13 +126,7 @@ youngTableau(Partition,MutableMatrix):= (p,L)->(
     if(sum toList p != # (flatten entries L )) then error "Partition and List size do not match";
     tableau:= new YoungTableau;
     tableau#partition =p;
-    tableau#index = {0,0,0};
-    
-    if (#L != 0) then (
-    tableau#index = {#p-1,(last p)-1,sum(toList p)};
-    
     tableau#values = new MutableList from flatten entries L;
-    );
     tableau
 )
 
@@ -144,13 +134,7 @@ youngTableau(Partition,Sequence):=(p,L)->(
     if(sum toList p != #L) then error " Partition and List size do not match ";
     tableau:= new YoungTableau;
     tableau#partition =p;
-    tableau#index = {0,0,0};
-    
-    if (#L != 0) then (
-    tableau#index = {#p-1,(last p)-1,sum(toList p)};
-    
     tableau#values = new MutableList from toList L;
-    );
     tableau
 )
 
@@ -651,18 +635,18 @@ indexTableau(YoungTableau):= tableau -> (
 -- The method calculates all the different tableaus that can be obtained by permuting the
 -- elements in the rows, in such a way that all elements in the columns are different.
 -----
-generalizedTableaux = method()
-generalizedTableaux(YoungTableau) := (tableau)->(
+rowPermutationTableaux = method()
+rowPermutationTableaux(YoungTableau) := (tableau)->(
     --Assuming all tableaus have size greater or equal to one.
     size:=sum(toList tableau#partition);	
     numbers:= apply (#(tableau#partition), i -> new MutableHashTable from tally tableau^i);
-    maxTableaux:=product(numbers, tal->  multinomial( values tal));
-    scan (numbers, i-> print new HashTable from i);
-    print maxTableaux;
+    maxTableaux:=product(numbers, tal->  multinomial( tally values tal));
+    --scan (numbers, i-> print new HashTable from i);
+    --print maxTableaux;
     tableaux :=tableauList(tableau#partition,maxTableaux);
     newTableau:= youngTableau(tableau#partition,size:(-1));
     --setIndex({0,0,0},newTableau);
-    recursiveGeneralizedTableaux((#tableau#partition-1,0),numbers,newTableau,tableaux);
+    recursiveRowPermutationTableaux((#tableau#partition-1,0),numbers,newTableau,tableaux);
     tableaux
 )
 
@@ -674,43 +658,26 @@ generalizedTableaux(YoungTableau) := (tableau)->(
 -- In this way the method effectively goes through all posible fillings of the tableau.
 -- TODO find a way to put the list of numbers and the tableau as a global variable.
 -----
-recursiveGeneralizedTableaux = method(TypicalValue => TableauList)
-recursiveGeneralizedTableaux(Sequence, List,YoungTableau,TableauList):= (pos,numbers, tableau, tableaux) -> (
+recursiveRowPermutationTableaux = method(TypicalValue => TableauList)
+recursiveRowPermutationTableaux(Sequence, List,YoungTableau,TableauList):= (pos,numbers, tableau, tableaux) -> (
     element:=0; 
     (row,col):= pos;
     nextPos := (0,0);
     if col + 1 == tableau#partition#row then nextPos = (row-1,0) else nextPos = (row,col+1);
-    print nextPos;
+    --print nextPos;
     for j in keys(numbers#row) do (
 	if not any (tableau_col, i-> i == j) then (
 	    tableau_(row,col)=j;
-	    print net tableau;
+	   -- print net tableau;
 	    numbers#row#j = numbers#row#j-1;
 	    if(numbers#row#j == 0 ) then remove (numbers#row, j);
-	    if nextPos#0 == -1 then addTableau(tableaux,tableau) else recursiveGeneralizedTableaux(nextPos,numbers,tableau,tableaux);
+	    if nextPos#0 == -1 then addTableau(tableaux,tableau) else recursiveRowPermutationTableaux(nextPos,numbers,tableau,tableaux);
 	    if numbers#row#?j then numbers#row#j = numbers#row#j+1 else numbers#row#j = 1;
 	    tableau_(row,col)=-1;
 	    );
 	);   
 )
 
------
--- This method codes 
------
-rowStructure = method(TypicalValue => MutableMatrix)
-rowStructure(TableauList):= (tableaux)->(
-    M:= mutableMatrix(ZZ, tableaux#length, sum(toList tableaux#partition));
-    for i to tableaux#length-1 do (
-        r := 0;
-        for j to #(tableaux#partition)-1 when (tableaux#partition)#j > 1 do(
-            for k to (tableaux#partition)#j-1 do(
-                M_(i,(tableaux#matrix)_(i,r+k)-1) = j+1;
-            );
-            r = r+(tableaux#partition)#j;
-        );
-    );
-    M
-)
 
 
 -----
@@ -766,27 +733,9 @@ conjugacyClass List := perm -> (
     new Partition from (reverse sort apply (cycles, c -> #c))
     )
 
------
--- A method which gives a partition as a multiset
--- TODO: Implement with the class MultiSet.
------
-differentElementsInPartition = method(TypicalValue => MutableHashTable)
-differentElementsInPartition(Partition) := p -> ( 
-exponent := new MutableHashTable;
-    val := p#0;
-    exponent#val = 1;
-    for i from 1 to #p-1 do(
-        if p#i == val then exponent#val = exponent#val +1
-        else (  
-                val =p#i;
-                exponent#val =1;
-            )    
-    );
-    exponent
-)
 
 -----
--- This method codes 
+-- Methods for calculating the multinomial 
 -----
 multinomial = method(TypicalValue => ZZ)
 multinomial(Tally) := (p)->(
@@ -804,25 +753,21 @@ multinomial( List) := (c)->(
 multinomial Partition := p -> (
     multinomial toList p
     )    
------
--- This method codes 
------
-factorial = method(TypicalValue => ZZ)
-factorial(ZZ) := n->(if n ==0 then 1 else n*factorial(n-1)) 
+ 
 
 
 -----
 -- This method extends the permutations from a subset of (1,...n) to all the permutations of
 -- (1,...n) by fixing all letters that are not in the subset 
 -----
-canonicalPermutation = method(TypicalValue => List)
-canonicalPermutation(ZZ, List) := (n,per) -> (
-    per2 := sort(per);
+extendPermutation = method(TypicalValue => List)
+extendPermutation(ZZ, List) := (n,per) -> (
+    numbers := sort(per);
     j := 0;
     result := new MutableList;
     result#(n-1) = 0;
     for i from 0 to n-1 do (
-        if(j < #per and i == per2#j) then 
+        if(j < #per and i == numbers#j) then 
         (
 	    result#(i) = per#j;
             j = j+1;
@@ -833,175 +778,60 @@ canonicalPermutation(ZZ, List) := (n,per) -> (
     result
 )
 
+extendedPermutations = method()
+extendedPermutations(ZZ,List ):= (n,numbers) -> (
+    perms:= permutations(numbers);
+    apply(perms, p-> extendPermutation(n,p)) 
+    )
 
------
--- This method codes 
------
-permutationsFixColumn = method(TypicalValue =>List)
-permutationsFixColumn(YoungTableau,ZZ):= (tableau,col) -> (
-    column:= tableau_col;
-    perms:= permutations(column);
-    n := sum(toList tableau#partition);
-    permsFinal := new MutableList;
-    
-    for i to #perms-1 do(
-        permsFinal#i = canonicalPermutation(n,perms#i);
-    );
-    permsFinal = toList permsFinal;
-    permsFinal
-
-)
-
-permutationsFixColumn(YoungTableau,ZZ,ZZ):= (tableau,n,col) -> (
-    column:= tableau_col;
-    perms:= permutations(column);
-    permsFinal := new MutableList;
-    
-    for i to #perms-1 do(
-        permsFinal#i = canonicalPermutation(n,perms#i);
-    );
-    permsFinal = toList permsFinal;
-    permsFinal
-
-)
-
-
------
--- This method codes 
------
-permutationsFixRow = method(TypicalValue =>List)
-permutationsFixRow(YoungTableau,ZZ):= (tableau, num) -> (
-    row:= tableau^num;
-    perms:= permutations(row);
-    n := sum(toList tableau#partition);
-    permsFinal := new MutableList;
-    
-    for i to #perms-1 do(
-        
-        permsFinal#i = canonicalPermutation(n,perms#i);
-    );
-    permsFinal = toList permsFinal;
-    permsFinal
-
-)
-
-
-permutationsFixRow(YoungTableau,ZZ,ZZ):= (tableau,n, num) -> (
-    row:= tableau^num;
-    perms:= permutations(row);
-    permsFinal := new MutableList;
-    for i to #perms-1 do(
-        permsFinal#i = canonicalPermutation(n,perms#i);
-    );
-    permsFinal = toList permsFinal;
-    permsFinal
-
-)
 
 -----
 -- Direct product 
 -----
-productPermutationsList = method(TypicalValue =>List)
-productPermutationsList(List,List):= (L,M) ->(
-   P:= new MutableList;
-   ind:= 0;
-   for i from 0 to #L-1 do(
-      for j from 0 to #M-1 do(
-         P#ind=(L#i)_(M#j);
-         ind= ind+1;
-      );
-   );
-    toList P
+directProductOfPermutations = method(TypicalValue =>List)
+directProductOfPermutations(List,List):= (A,B) ->(
+   flatten apply(A, a->apply(B,b->a_b))   
 )
 
 -----
 -- This method codes 
 -----
 columnStabilizer=method(TypicalValue => List)
-columnStabilizer(List):= (T) ->(
-    col:=#T#0;
-    P:=permutationsFixColumn(T,1);
-    for i from 2 to col do(
-	P=productPermutationsList(P,permutationsFixColumn(T,i));
-	);
-    P
-)
-
 columnStabilizer(YoungTableau):= (tableau) ->(
-    col:=(tableau#partition)#0;
-    P:=permutationsFixColumn(tableau,0);
-    for i from 1 to col-1 do (
-    	P=productPermutationsList(P,permutationsFixColumn(tableau,i));
-    	);
-    toList P
-)
-
-
-columnStabilizer(YoungTableau,ZZ):= (tableau,n) ->(
-    col:=(tableau#partition)#0;
-    P:=permutationsFixColumn(tableau,n,0);
-    for i from 1 to col-1 do (
-    	P=productPermutationsList(P,permutationsFixColumn(tableau,n,i));
-    	);
-    toList P
+    n:= sum toList tableau#partition;
+    stab:=extendedPermutations(n,tableau_0);
+    for i from 1 to tableau#partition#0-1 do(
+	stab=directProductOfPermutations(stab,extendedPermutations(n,tableau_i));
+	);
+    stab
 )
 
 -----
 -- This method codes 
 -----
 rowStabilizer=method(TypicalValue => List)
-rowStabilizer(List):= (T) ->(
-    rowss:=#T;
-    P:=permutationsFixRow(T.1);
-    for i from 2 to rowss do(
-	P=productPermutationsList(P,permutationsFixRow(T,i))
-	);
-    P
-)
 
 rowStabilizer(YoungTableau):= (tableau) ->(
-    rowss:=#(tableau#partition);
-    P:=permutationsFixRow(tableau,0);
-    for i from 1 to rowss-1 do(
-        P=productPermutationsList(P,permutationsFixRow(tableau,i));
-    );
-toList P
-)
-
-rowStabilizer(YoungTableau,ZZ):= (tableau,n) ->(
-    rowss:=#(tableau#partition);
-    P:=permutationsFixRow(tableau,n,0);
-    for i from 1 to rowss-1 do(
-        P=productPermutationsList(P,permutationsFixRow(tableau,n,i));
-    );
-toList P
-)
-
-
------
--- This method codes 
------ 
-comparePartitions = method(TypicalValue => ZZ)
-comparePartitions(Partition,Partition):=(p,q)->(
-ans:=1;
-if #p!=#q then ans=0
-else ( 
- 	for i from 0 to #p-1 do(
-		if p#i!=q#i then(ans=0; break )
+    n:= sum toList tableau#partition;
+    stab:=extendedPermutations(n,tableau^0);
+    for i from 1 to #tableau#partition-1 do(
+	stab=directProductOfPermutations(stab,extendedPermutations(n,tableau^i));
 	);
-);
-ans
+    stab
 )
 
 
-signPermutation =method(TypicalValue=>ZZ)
-signPermutation Partition := partis -> (
-    sign:=1;
-    for i to #partis-1 when partis#i >1 do(
-        sign = sign*(-1)^(partis#i-1);
-    );
-    sign
+permutationSign =method(TypicalValue=>ZZ)
+permutationSign Partition := p -> (
+    
+    tal := tally toList p;
+    product(keys tal, i->(-1)^((i+1)*tal#i))
 )
+
+permutationSign List := p -> (
+    
+    permutationSign conjugacyClass p
+    )
 
 
 
@@ -1374,23 +1204,7 @@ cardinalityOfConjugacyClass(Partition) := p -> (
 )
 
 
------
--- A method which gives a partition as a multiset
--- TODO: Implement with the class MultiSet.
------
-differentElementsInPartition(Partition) := p -> ( 
-exponent := new MutableHashTable;
-    val := p#0;
-    exponent#val = 1;
-    for i from 1 to #p-1 do(
-        if p#i == val then exponent#val = exponent#val +1
-        else (  
-                val =p#i;
-                exponent#val =1;
-            )    
-    );
-    exponent
-)
+
 
 
 

@@ -1,3 +1,117 @@
+-----
+-- This method codes 
+----- 
+comparePartitions = method(TypicalValue => ZZ)
+comparePartitions(Partition,Partition):=(p,q)->(
+ans:=1;
+if #p!=#q then ans=0
+else ( 
+ 	for i from 0 to #p-1 do(
+		if p#i!=q#i then(ans=0; break )
+	);
+);
+ans
+)
+
+-----
+-- This method returns all permutations in n letters that permute the entries of
+-- column and fixes the entries in all the other columns
+-----
+columnPermutations = method(TypicalValue =>List)
+columnPermutations(YoungTableau,ZZ):= (tableau,col) -> (
+    col= tableau_col;
+    perms:= permutations(col);
+    n := sum(toList tableau#partition);
+    apply(perms, p-> extendPermutation(n,p)) 
+)
+
+
+-----
+-- This method codes 
+-----
+rowPermutations = method(TypicalValue =>List)
+rowPermutations(YoungTableau,ZZ):= (tableau, row) -> (
+    row= tableau^row;
+    perms:= permutations(row);
+    n := sum(toList tableau#partition);
+    apply(perms, p-> extendPermutation(n,p))
+)
+
+P:= new MutableList;
+   ind:= 0;
+   for i from 0 to #L-1 do(
+      for j from 0 to #M-1 do(
+         P#ind=(L#i)_(M#j);
+         ind= ind+1;
+      );
+   );
+    toList P
+
+-----
+-- A method which gives a partition as a multiset
+-- TODO: Implement with the class MultiSet.
+-----
+differentElementsInPartition(Partition) := p -> ( 
+exponent := new MutableHashTable;
+    val := p#0;
+    exponent#val = 1;
+    for i from 1 to #p-1 do(
+        if p#i == val then exponent#val = exponent#val +1
+        else (  
+                val =p#i;
+                exponent#val =1;
+            )    
+    );
+    exponent
+)
+
+
+-----
+-- This method codes 
+-----
+factorial = method(TypicalValue => ZZ)
+factorial(ZZ) := n->(if n ==0 then 1 else n*factorial(n-1))
+
+-----
+-- A method which gives a partition as a multiset
+-- TODO: Implement with the class MultiSet.
+-----
+differentElementsInPartition = method(TypicalValue => MutableHashTable)
+differentElementsInPartition(Partition) := p -> ( 
+exponent := new MutableHashTable;
+    val := p#0;
+    exponent#val = 1;
+    for i from 1 to #p-1 do(
+        if p#i == val then exponent#val = exponent#val +1
+        else (  
+                val =p#i;
+                exponent#val =1;
+            )    
+    );
+    exponent
+)
+
+
+-----
+--  
+-----
+rowStructure = method(TypicalValue => MutableMatrix)
+rowStructure(TableauList):= (tableaux)->(
+    M:= mutableMatrix(ZZ, tableaux#length, sum(toList tableaux#partition));
+    for i to tableaux#length-1 do (
+        r := 0;
+        for j to #(tableaux#partition)-1 when (tableaux#partition)#j > 1 do(
+            for k to (tableaux#partition)#j-1 do(
+                M_(i,(tableaux#matrix)_(i,r+k)-1) = j+1;
+            );
+            r = r+(tableaux#partition)#j;
+        );
+    );
+    M
+)
+
+
+
 if(isLastIndex(tableau)) then 
     (
 	--Case that the we need to find the only possible number 
