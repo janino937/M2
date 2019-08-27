@@ -866,49 +866,46 @@ combinations(ZZ,ZZ):= (n,m)->(
 
 SpechtModuleElement = new Type of MutableHashTable 
 
-SpechtModuleTerm = new Type of List
+spechtModuleElement = method()
+spechtModuleElement (YoungTableau, ZZ) := (tableau,coef)-> new SpechtModuleElement from new MutableHashTable from hashTable {tableau => coef} 
 
-coefficient SpechtModuleTerm := term -> term#1
-
-tabloid = method()
-tabloid SpechtModuleTerm := term -> term#0
-
-net SpechtModuleTerm := term ->(
+netTerm = method()
+netTerm (YoungTableau,ZZ) := (tableau,coef)-> (
     
-    if coefficient term  == 0 then 0 
-    else if coefficient term == 1 then net tabloid term
-    else if coefficient term == -1 then "- " | net tabloid term
-    else coefficient term | " " |net tabloid term    
-
-)
-
-ZZ * SpechtModuleTerm := (c,term) ->(
-    new SpechtModuleTerm from {tabloid term, c*coefficient term}
+    if coef  == 0 then 0 
+    else if coef == 1 then net tableau
+    else if coef == -1 then "- " | net tableau
+    else coef | " " |net tableau    
     )
 
-first SpechtModuleElement := A -> new SpechtModuleTerm from {first keys(A),first values(A)}
+ZZ * SpechtModuleElement := (c,element) ->(
+    applyValues (element,v-> if c!= 0 then v * c else continue)
+    )
 
-last SpechtModuleElement := A -> new SpechtModuleTerm from {last keys(A),last values(A)}
+--first SpechtModuleElement := A -> new SpechtModuleTerm from {first keys(A),first values(A)}
 
-trim SpechtModuleElement := A -> scan (keys(A), tabloid -> if A#tabloid == 0 then remove (A,tabloid)
+--last SpechtModuleElement := A -> new SpechtModuleTerm from {last keys(A),last values(A)}
+
+trim SpechtModuleElement := A -> scan (keys(A), tabloid -> if A#tabloid == 0 then remove (A,tabloid))
 
 
 
 SpechtModuleElement + SpechtModuleElement := (A,B)-> (
       
-      trim merge(A,B,plus)
+     merge(A,B,(i,j)->(if i+j != 0 then i+j else continue))
     )
 
 terms SpechtModuleElement:= A -> (
-    sort apply (keys A, tabloid-> new SpecyhtModuleTerm from {tabloid,A#tabloid})
+    apply(keys A, tabloid-> (tabloid,A#tabloid))
     )
 
 net SpechtModuleElement := A -> (
     netElement :=  net {};
-    if #keys A > 0 then netElement = net first A;
-    for t in drop(keys A,1)  do (
-	if A#t >0 then netElement = netElement | " + " | net A#t
-	else if coefficient A#t < 0 then netElement = netElement | " - " | net new SpechtModuleElement {A#t,t});
+    tabloids := sort keys A;
+    if #keys A > 0 then t := first tabloids ; netElement = netTerm(t,A#t);
+    for t in drop(tabloids,1)  do (
+	if A#t >0 then netElement = netElement | " + " | netTerm (t,A#t)
+	else if A#t < 0 then netElement = netElement | " - " | netTerm (t,-A#t);
 	--print netElement;
 	);
     netElement
@@ -916,28 +913,28 @@ net SpechtModuleElement := A -> (
 
 ---
 straighteningAlgorithm = method(TypicalValue=> List)
-straighteningAlgorithm(SpechtModuleElement):= (term) ->(
-    n
-    sign:= orderColumnsTableau(tableau);
-    element:= new SpechtModuleElement from { term};
-    length:= 1;
-    level:= 0;
-    while firstRowDescent(last element)>(-1,-1)  do( 
+straighteningAlgorithm(YoungTableau,ZZ):= (tableau,coef) ->(
+    sign:= sortColumnsTableau(tableau);
+    element:= spechtModuleElement(tableau,coef);
+    notStandard := select(1, keys element, t-> firstRowDescent(t) > (-1,-1));
+    while #notStandard != 0  do( 
 	--printTableau(tableaux#0#0);
-	garnir:= garnirElement(last element);
-	element = remove (element,last element) + garnir;
-	print net element;   	
+       	notStandard = first notStandard;
+	garnir:= garnirElement(notStandard,element#notStandard);
+	element = remove (element,notStandard) + garnir;
+	print net element;
+	notStandard = select(1, keys element, t-> firstRowDescent(t) > (-1,-1));   	
 	); 
-    tableaux 
+    element 
     )
 
-straighteningAlgorithm(YoungTableau):= tableau -> straigteningAlgorithm new SpechtModuleTerm from {tableau,1}
+straighteningAlgorithm(YoungTableau):= tableau -> straighteningAlgorithm(tableau,1)
 
 garnirElement = method()
-garnirElement(SpechtModuleTerm):= (term) -> (
-    tableau:= tabloid term;
+garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
     (a,b):= firstRowDescent tableau;
-    ans:=  term;
+    ans:=  spechtModuleElement(tableau,coef);
+    garnir := (tableau,coef);
     if (a,b) != (-1,-1) then ( 
     	conju:= conjugate tableau#partition;
     	combs:= combinations(conju#a+1,b+1);
@@ -956,13 +953,13 @@ garnirElement(SpechtModuleTerm):= (term) -> (
 	    --print net newTableau;
 	    sign:=sortColumnsTableau(newTableau);
 	    --print net newTableau;
-	    new SpechtModuleTerm from {newTableau,-(coefficient term) *sign*permutationSign(conjugacyClass(comb))}
+	    spechtModuleElement (newTableau, -(coef) *sign*permutationSign(conjugacyClass(comb)))
       	    ));
+    	
 	);
     
     --print(ans);
-    ans= sort(ans);
-    new SpechtModuleElement from ans
+    sum ans
     )
 
 sortColumnsTableau = method()
@@ -982,7 +979,9 @@ sortColumn (YoungTableau,ZZ) := (tableau,i) -> (
     )
 
 
-SpechtModuleTerm ? SpechtModuleTerm := (term1,term2)-> rowDescentOrder(term1#0,term2#0)
+--SpechtModuleTerm ? SpechtModuleTerm := (term1,term2)-> rowDescentOrder(term1#0,term2#0)
+
+YoungTableau ? YoungTableau := (tableau1,tableau2)-> rowDescentOrder(tableau1,tableau2)
 
 rowDescentOrder = method()
 rowDescentOrder(YoungTableau,YoungTableau):= (tableau1,tableau2)-> (
@@ -1013,7 +1012,7 @@ firstRowDescent YoungTableau := tableau -> (
     
     parti := conjugate(tableau#partition);
     (a,b):= (#parti,0);
-    if not any(#parti,i->(b = i;any(parti#i-1, j-> (a = j;tableau_(j,i)>tableau_(j,i+1))))) then
+    if not any(#parti,i->(b = i; any(parti#i, j-> (a = j;i+1 < tableau#partition#j and tableau_(j,i)>tableau_(j,i+1))))) then
     	(a,b) = (-1,-1);
     (a,b)
     )
@@ -1173,6 +1172,10 @@ irreducibleSpechtRepresentation(Partition, PolynomialRing) := (parti, R)-> (
 end
 
 
+path = append(path,"-/M2/M2/Macaulay2/packages")
+
+loadPackage("SpechtModule",Reload => true)
+
 p = new Partition from {3,2}
 y = youngTableau( p ,{2,3,4,0,1})
 sortColumnsTableau y
@@ -1180,10 +1183,10 @@ y
 new SpechtModuleTerm from {y,2}
 stan = standardTableaux p  
 
-p = new Partition from {2,1}
-y = youngTableau( p ,{1,0,2})
+p = new Partition from {2,2,1}
+y = youngTableau( p ,{1,0,3,2,4})
 sortColumnsTableau y
 y
-term = new SpechtModuleTerm from {y,1}
-garnirElement term 
+e = garnirElement (y,1) 
+sort keys e
 stan = standardTableaux p  

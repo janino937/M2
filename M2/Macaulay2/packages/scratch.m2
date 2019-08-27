@@ -24,6 +24,22 @@ YoungTableau ? YoungTableau := (tableau1,tableau2)-> (
     )
 
 
+--SpechtModuleTerm = new Type of List
+
+--coefficient SpechtModuleTerm := term -> term#1
+
+--tabloid = method()
+--tabloid SpechtModuleTerm := term -> term#0
+
+--net SpechtModuleTerm := term ->(
+    
+    if coefficient term  == 0 then 0 
+    else if coefficient term == 1 then net tabloid term
+    else if coefficient term == -1 then "- " | net tabloid term
+    else coefficient term | " " |net tabloid term    
+
+)
+
 
 columnDominance(Sequence,Sequence):= (tableau1,tableau2) -> (
     
