@@ -864,7 +864,7 @@ combinations(ZZ,ZZ):= (n,m)->(
 )   
 
 
-SpechtModuleElement = new Type of List 
+SpechtModuleElement = new Type of MutableHashTable 
 
 SpechtModuleTerm = new Type of List
 
@@ -886,16 +886,29 @@ ZZ * SpechtModuleTerm := (c,term) ->(
     new SpechtModuleTerm from {tabloid term, c*coefficient term}
     )
 
+first SpechtModuleElement := A -> new SpechtModuleTerm from {first keys(A),first values(A)}
+
+last SpechtModuleElement := A -> new SpechtModuleTerm from {last keys(A),last values(A)}
+
+trim SpechtModuleElement := A -> scan (keys(A), tabloid -> if A#tabloid == 0 then remove (A,tabloid)
+
+
+
 SpechtModuleElement + SpechtModuleElement := (A,B)-> (
-    A
+      
+      trim merge(A,B,plus)
     )
 
-net SpechtModuleElement := e -> (
+terms SpechtModuleElement:= A -> (
+    sort apply (keys A, tabloid-> new SpecyhtModuleTerm from {tabloid,A#tabloid})
+    )
+
+net SpechtModuleElement := A -> (
     netElement :=  net {};
-    if #e > 0 then netElement = net e#0;
-    for i from 1 to #e-1 do (
-	if coefficient e#i >0 then netElement = netElement | " + " | net e#i
-	else if coefficient e#i < 0 then netElement = netElement | " - " | net ((-1)*e#i);
+    if #keys A > 0 then netElement = net first A;
+    for t in drop(keys A,1)  do (
+	if A#t >0 then netElement = netElement | " + " | net A#t
+	else if coefficient A#t < 0 then netElement = netElement | " - " | net new SpechtModuleElement {A#t,t});
 	--print netElement;
 	);
     netElement
@@ -903,52 +916,22 @@ net SpechtModuleElement := e -> (
 
 ---
 straighteningAlgorithm = method(TypicalValue=> List)
-straighteningAlgorithm(YoungTableau):= (tableau) ->(
-    
+straighteningAlgorithm(SpechtModuleElement):= (term) ->(
+    n
     sign:= orderColumnsTableau(tableau);
-    tableaux:= new MutableList from {(tableau, sign)};
+    element:= new SpechtModuleElement from { term};
     length:= 1;
     level:= 0;
-    while firstRowDescent(tableaux#0#0)<(tableau#partition#0,0)  do( 
-	
+    while firstRowDescent(last element)>(-1,-1)  do( 
 	--printTableau(tableaux#0#0);
-	garnir:= garnirElement(tableaux#0);
-	--print(length);
-	newTableaux:= new MutableList from (length-1+#garnir):0;
-	
-	i := 1;
-	k := 0;
-	j := 0;
-	while(i < length or j < #garnir) do(
-	   -- print(i,j,k);
-	    if (j == #garnir) or ( i < length and columnDominance(tableaux#i,garnir#j) < 0) then (
-		
-		newTableaux#k = tableaux#i;
-		i=i+1;
-		k=k+1;
-		) 
-	    else if (i == #tableaux) or (j < #garnir  and columnDominance(tableaux#i,garnir#j)> 0) then (
-		newTableaux#k = garnir#j;
-		j=j+1;
-		k=k+1;
-		)
-	    else (
-		coef:= tableaux#i#1+garnir#j#1;
-		if ( coef!= 0 ) then (
-		    newTableaux#k= (garnir#j#0,coef);
-		    k = k+1;
-		    );
-	    	--else print("Saved", level);
-		i = i+1;
-		j = j+1;
-	    	);
-	    );
-	length= k;
-	level = level+1;
-	tableaux = apply(toList (0..k-1), i-> newTableaux#i);    	
+	garnir:= garnirElement(last element);
+	element = remove (element,last element) + garnir;
+	print net element;   	
 	); 
     tableaux 
     )
+
+straighteningAlgorithm(YoungTableau):= tableau -> straigteningAlgorithm new SpechtModuleTerm from {tableau,1}
 
 garnirElement = method()
 garnirElement(SpechtModuleTerm):= (term) -> (
