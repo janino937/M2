@@ -67,6 +67,13 @@ export {"permutationsFixColumn"}
 export {"permutationsFixRow"}
 export {"productPermutationsList"}
 export {"permutationSign"}
+export {"rowDescentOrder"}
+export {"sortColumnsTableau"}
+export {"sortColumn"}
+
+export {"SpechtModuleTerm"}
+export {"SpechtModuleElement"}
+
 protect \ {row,column}
 ---
 --YoungTableau
@@ -110,6 +117,7 @@ youngTableau(Partition,List):= (p,L)->(
 youngTableau(YoungTableau):= (tableau)->(
     t:= new YoungTableau; 
     for i to #keys(tableau)-1 do t#((keys(tableau))#i) = tableau#((keys(tableau))#i);
+    t#values = new MutableList from tableau#values; 
     t      
 )
 
@@ -856,6 +864,42 @@ combinations(ZZ,ZZ):= (n,m)->(
 )   
 
 
+SpechtModuleElement = new Type of List 
+
+SpechtModuleTerm = new Type of List
+
+coefficient SpechtModuleTerm := term -> term#1
+
+tabloid = method()
+tabloid SpechtModuleTerm := term -> term#0
+
+net SpechtModuleTerm := term ->(
+    
+    if coefficient term  == 0 then 0 
+    else if coefficient term == 1 then net tabloid term
+    else if coefficient term == -1 then "- " | net tabloid term
+    else coefficient term | " " |net tabloid term    
+
+)
+
+ZZ * SpechtModuleTerm := (c,term) ->(
+    new SpechtModuleTerm from {tabloid term, c*coefficient term}
+    )
+
+SpechtModuleElement + SpechtModuleElement := (A,B)-> (
+    A
+    )
+
+net SpechtModuleElement := e -> (
+    netElement :=  net {};
+    if #e > 0 then netElement = net e#0;
+    for i from 1 to #e-1 do (
+	if coefficient e#i >0 then netElement = netElement | " + " | net e#i
+	else if coefficient e#i < 0 then netElement = netElement | " - " | net ((-1)*e#i);
+	--print netElement;
+	);
+    netElement
+    )
 
 ---
 straighteningAlgorithm = method(TypicalValue=> List)
@@ -907,67 +951,72 @@ straighteningAlgorithm(YoungTableau):= (tableau) ->(
     )
 
 garnirElement = method()
-garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
-    (a,b):= firstRowDescent(tableau);
-    ans:={(tableau,coef)};
-    if ((a,b) < (tableau#partition#0,0)) then ( 
-    	conju:= conjugate(tableau#partition);
+garnirElement(SpechtModuleTerm):= (term) -> (
+    tableau:= tabloid term;
+    (a,b):= firstRowDescent tableau;
+    ans:=  term;
+    if (a,b) != (-1,-1) then ( 
+    	conju:= conjugate tableau#partition;
     	combs:= combinations(conju#a+1,b+1);
     	--print(a,b);
-	A:= tableau_(a+1);
-    	B:= tableau_a;
-	AB:= new MutableList from (#B+1):0;
-     	newTableaux:= new MutableList from (numRows(combs)-1):0;
-	--print (newTableaux, combs);
-    	for i to b do (
-	    AB#(i)=A#i;
-	    );
-	
-	for i from b+1 to #B do (
-	    AB#(i)= B#(i-1);
-	    );
-       	--print(AB);
-	for i from 1 to numRows combs -1 do(
-	    newTableau:= youngTableau(tableau#partition,flatten tableauToList tableau);
-	   -- print("OK");
-	    combination:= combs#{i};
-	   -- print(combination);
+	AB:= (tableau_(a+1))_{0..b}|(tableau_(a))_{b..conju#a-1};
+     	--print(AB);
+	ans = apply (drop(combs,1),comb->(
+	    newTableau:= youngTableau(tableau);
+	   --print(comb);
 	    for j to b do(
-		newTableau_(j,a+1)= AB#(combination#j);
+		newTableau_(j,a+1)= AB#(comb#j);
 	    	);
 	    for j from b+1 to conju#a do (  
-	    	newTableau(j-1,a) = AB#(combination#j);
+	    	newTableau_(j-1,a) = AB#(comb#j);
 		);
-	    sign:=orderColumnsTableau(newTableau);
-	    newTableaux#(i-1) = (newTableau,-coef*sign*signPermutation(conjugacyClass(combination)));
-      	    );
-	
-	ans = toList newTableaux;
-    	);
+	    --print net newTableau;
+	    sign:=sortColumnsTableau(newTableau);
+	    --print net newTableau;
+	    new SpechtModuleTerm from {newTableau,-(coefficient term) *sign*permutationSign(conjugacyClass(comb))}
+      	    ));
+	);
     
-    -- TODO Find out how to use sort from Macaulay2
     --print(ans);
-    (ans,coef)= bubbleSort(ans,columnDominance);
-    ans
+    ans= sort(ans);
+    new SpechtModuleElement from ans
+    )
+
+sortColumnsTableau = method()
+sortColumnsTableau YoungTableau := tableau -> (
+    product(tableau#partition#0,i->sortColumn(tableau,i))
+    )
+
+sortColumn = method()
+sortColumn (YoungTableau,ZZ) := (tableau,i) -> (
+    col:= tableau_i;
+    sortedCol := sort col;
+    scan (#col, j->(tableau_(j,i)= sortedCol#j));
+    index := hashTable apply (#sortedCol,i-> sortedCol#i => i);
+    permutation:= apply(col,a->index#a );
+    --error "test";
+    permutationSign(permutation)
     )
 
 
-columnDominance = method()
-columnDominance(YoungTableau,YoungTableau):= (tableau1,tableau2)-> (
+SpechtModuleTerm ? SpechtModuleTerm := (term1,term2)-> rowDescentOrder(term1#0,term2#0)
+
+rowDescentOrder = method()
+rowDescentOrder(YoungTableau,YoungTableau):= (tableau1,tableau2)-> (
     
     ans:= 0;
     if(firstRowDescent tableau1 < firstRowDescent tableau2) then (
 	
-	ans=-1;
+	ans= symbol <;
 	)
     else if ( firstRowDescent tableau1 > firstRowDescent tableau2) then (
 	
-	ans = 1;
+	ans = symbol >;
 	
 	)
     else (
 	
-	ans = lexicographicalOrder(tableau1,tableau2)
+	ans = toList tableau1#values ? toList tableau2#values
 	
 	);
     
@@ -975,65 +1024,18 @@ columnDominance(YoungTableau,YoungTableau):= (tableau1,tableau2)-> (
     
     )
 
-columnDominance(Sequence,Sequence):= (tableau1,tableau2) -> (
-    
-    ans:= 0;
-    if(firstRowDescent tableau1#0 < firstRowDescent tableau2#0) then (
-	
-	ans=-1;
-	)
-    else if ( firstRowDescent tableau1#0 > firstRowDescent tableau2#0) then (
-	
-	ans = 1;
-	
-	)
-    else (
-	
-	ans = lexicographicalOrder(tableau1#0,tableau2#0)
-	
-	);
-    ans
-    )
 
 firstRowDescent= method()
 firstRowDescent YoungTableau := tableau -> (
     
     parti := conjugate(tableau#partition);
-    fin:= false;
     (a,b):= (#parti,0);
-    for i from 1 to #parti-1 when not fin do(
-	for j to parti#i -1 when not fin do(
-	    if tableau_(j,i-1) > tableau_(j,i) then (
-		    fin = true;
-		    (a,b)=(i-1,j);
-		);
-	    );
-	);
+    if not any(#parti,i->(b = i;any(parti#i-1, j-> (a = j;tableau_(j,i)>tableau_(j,i+1))))) then
+    	(a,b) = (-1,-1);
     (a,b)
     )
 
-lexicographicalOrder = method()
-lexicographicalOrder(YoungTableau, YoungTableau):=(tableau1,tableau2) ->(
-    
-    ans:= 0;
-    if(toList tableau1#partition != toList tableau2#partition) then
-    	error "The tableaus don't have the same partition";
-    for i to #(tableau1#partition)-1 when ( ans == 0) do (
-    
-    	for j to tableau1#partition#i-1 when (ans == 0) do (
-	    
-	    if tableau1_(i,j) < tableau2_(i,j) then
-	    	(ans=-1)
-	    else if tableau1_(i,j) > tableau2_(i,j) then
-	    	(ans = 1); 
-		
-	    );
-	    	
-    	);
-	
-    ans
-    
-    )
+
 
 bubbleSort = method()
 bubbleSort(List):= lista ->(
@@ -1128,23 +1130,7 @@ binarySearch(TableauList,YoungTableau,ZZ):=(standard,val,ini)->(
     )
     
 
-orderColumnsTableau = method()
-orderColumnsTableau(YoungTableau):= tableau -> (
-    
-    sign:= 1;
-    for i to tableau#partition#0-1 do(
-	column:=tableau_i;
-	(lista,signColumn):=bubbleSort(column); 
-	
-	for j to #column-1 do(
-	    
-	    tableau_(j,i)=lista#j;
-	    );
-	
-	sign = sign*signColumn;
-	);
-    sign
-    )
+
 
 
 cardinalityOfConjugacyClass = method(TypicalValue => ZZ)
@@ -1201,7 +1187,20 @@ irreducibleSpechtRepresentation(Partition, PolynomialRing) := (parti, R)-> (
     toList(lista)
 )
 
+end
 
 
+p = new Partition from {3,2}
+y = youngTableau( p ,{2,3,4,0,1})
+sortColumnsTableau y
+y
+new SpechtModuleTerm from {y,2}
+stan = standardTableaux p  
 
-    	
+p = new Partition from {2,1}
+y = youngTableau( p ,{1,0,2})
+sortColumnsTableau y
+y
+term = new SpechtModuleTerm from {y,1}
+garnirElement term 
+stan = standardTableaux p  

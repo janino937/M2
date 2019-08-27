@@ -1,3 +1,75 @@
+sortPermutationSign = method()
+sortPermutationSign(List,List):= (original,sortedList) -> (
+    
+    sign:= 1;
+    
+    for i to tableau#partition#0-1 do(
+	column:=tableau_i;
+	(lista,signColumn):=bubbleSort(column); 
+	
+	for j to #column-1 do(
+	    
+	    tableau_(j,i)=lista#j;
+	    );
+	
+	sign = sign*signColumn;
+	);
+    sign
+    )
+
+
+YoungTableau ? YoungTableau := (tableau1,tableau2)-> (
+    
+    rowDescentOrder(tableau1,tableau2)
+    )
+
+
+
+columnDominance(Sequence,Sequence):= (tableau1,tableau2) -> (
+    
+    ans:= 0;
+    if(firstRowDescent tableau1#0 < firstRowDescent tableau2#0) then (
+	
+	ans=-1;
+	)
+    else if ( firstRowDescent tableau1#0 > firstRowDescent tableau2#0) then (
+	
+	ans = 1;
+	
+	)
+    else (
+	
+	ans = lexicographicalOrder(tableau1#0,tableau2#0)
+	
+	);
+    ans
+    )
+
+
+lexicographicalOrder = method()
+lexicographicalOrder(YoungTableau, YoungTableau):=(tableau1,tableau2) ->(
+    
+    ans:= 0;
+    if(toList tableau1#partition != toList tableau2#partition) then
+    	error "The tableaus don't have the same partition";
+    for i to #(tableau1#partition)-1 when ( ans == 0) do (
+    
+    	for j to tableau1#partition#i-1 when (ans == 0) do (
+	    
+	    if tableau1_(i,j) < tableau2_(i,j) then
+	    	(ans=-1)
+	    else if tableau1_(i,j) > tableau2_(i,j) then
+	    	(ans = 1); 
+		
+	    );
+	    	
+    	);
+	
+    ans
+    
+    )
+
+
 -----
 -- This method codes 
 ----- 
