@@ -61,6 +61,7 @@ export{"multinomial"}
 export {"straighteningAlgorithm"}
 
 export {"SpechtModuleElement"}
+export {"spechtModuleElement"}
 export {"toVector"}
 
 export {"productPermutationsList"}
@@ -340,20 +341,6 @@ youngTableau(Partition,Sequence):=(p,L)->(
     tableau
 )
 
-------
--- Methods for object tableau
-------
-
-changeFilling = method()
-
--- Assume that the initial values were then numbers from 0 to n-1
--- The labels are given in increasing order
-
-changeFilling(List,YoungTableau):= (labels,tableau)-> (
-    tab := youngTableau(tableau);
-    tab#values = labels;
-    tab
-    )
 
 ------
 -- Gives a representation of the Young Tableau as a list of the rows in the
@@ -455,7 +442,13 @@ YoungTableau_ZZ := (tableau,i) -> (
     )
 )
 
+YoungTableau == YoungTableau := (S,T) -> (
+    
+    toList S#partition == toList T#partition and toList S#values == toList T#values
+    )
 
+
+entries YoungTableau := tableau -> toList tableau#values
 ------
 -- A method to give a graphical representation of a Young diagram. This method saves the
 -- diagram in a mutable matrix and then prints the matrix. 
@@ -1128,24 +1121,28 @@ net SpechtModuleElement := A -> (
     netElement
     )
 
-
----
 straighteningAlgorithm = method(TypicalValue=> List)
-straighteningAlgorithm(YoungTableau,ZZ):= (tableau,coef) ->(
-    newTableau := youngTableau tableau;
-    sign:= sortColumnsTableau(newTableau);
-    element:= spechtModuleElement(newTableau,sign*coef);
+straighteningAlgorithm(SpechtModuleElement) := (element)->(
+    sortColumnsTableau(element); 
     notStandard := select(1, terms element, t-> firstRowDescent(t#0) > (-1,-1));
     while #notStandard != 0  do( 
 	notStandard = first notStandard;
 	garnir:= garnirElement(notStandard);
-	print net (notStandard,garnir);
+	--print net (notStandard,garnir);
 	--error "Stop";
 	element = element - garnir;
-	print net element;
+	--print net element;
 	notStandard = select(1, terms element, t-> firstRowDescent(t#0) > (-1,-1)); 	
 	); 
     element 
+)
+
+
+
+straighteningAlgorithm(YoungTableau,ZZ):= (tableau,coef) ->(
+    
+    element := spechtModuleElement (tableau,coef);
+    straighteningAlgorithm(element)
     )
  
 
@@ -1153,21 +1150,20 @@ straighteningAlgorithm(YoungTableau):= tableau -> straighteningAlgorithm(tableau
 
 
 garnirElement = method()
-garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
-    newTableau := youngTableau tableau;
-    sign:=sortColumnsTableau(newTableau);
-    coef = sign*coef;
-    ans:=  {spechtModuleElement(newTableau,coef)};
-    (a,b):= firstRowDescent newTableau;
-    if (a,b) != (-1,-1) then ( 
+
+garnirElement(YoungTableau,ZZ,ZZ,ZZ):= (tableau,coef,a,b)-> (
+    if(a >= #tableau#partition or b>=tableau#partition#a-1) then 
+    error "Index out of bounds" else (
+    	ans := {spechtModuleElement(tableau,coef)};
+	if (a,b) >= (0,0) then ( 
     	conju:= conjugate tableau#partition;
     	combs:= combinations(conju#b+1,a+1);
     	--print(a,b);
-	AB:= (newTableau_(b+1))_{0..a}|(newTableau_(b))_{a..conju#b-1};
+	AB:= (tableau_(b+1))_{0..a}|(tableau_(b))_{a..conju#b-1};
      	--print(AB);
 	ans = apply (combs,comb->(
 	    --print(comb);
-	    newTableau = youngTableau newTableau;
+	    newTableau:= youngTableau tableau;
 	    for j to a do(
 		newTableau_(j,b+1)= AB#(comb#j);
 	    	);
@@ -1175,7 +1171,7 @@ garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
 	    	newTableau_(j-1,b) = AB#(comb#j);
 		);
 	    --print net newTableau;
-	    sign=sortColumnsTableau(newTableau);
+	    sign:=sortColumnsTableau(newTableau);
 	    --print net newTableau;
 	    spechtModuleElement (newTableau, (coef) *sign*permutationSign(conjugacyClass(comb)))
       	    ));
@@ -1183,7 +1179,15 @@ garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
 	);
     --error "Stop";
     --print(ans);
-    sum ans
+    sum ans	
+	)
+    )
+
+garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
+    newTableau := youngTableau tableau;
+    ans:=  {spechtModuleElement(newTableau,coef)};
+    (a,b):= firstRowDescent newTableau;
+    garnirElement(tableau,coef,a,b)
     )
 
 garnirElement( YoungTableau) := tableau -> garnirElement(tableau,1)
@@ -1191,6 +1195,21 @@ garnirElement( YoungTableau) := tableau -> garnirElement(tableau,1)
 sortColumnsTableau = method()
 sortColumnsTableau YoungTableau := tableau -> (
     product(tableau#partition#0,i->sortColumn(tableau,i))
+    )
+
+sortColumnsTableau SpechtModuleElement := element ->
+(
+    scan (keys element#values, t -> (
+	    y := youngTableau(element#partition,t);
+	    --print net y;
+	    sign:= sortColumnsTableau(y);
+	    if(t != toList y#values) then (
+		coef := sign*element#values#t;
+		remove(element#values,t);
+		element#values#(entries y) = coef;
+		);
+	    )
+	)
     )
 
 sortColumn = method()
@@ -1296,6 +1315,9 @@ matrixRepresentation(Partition) := (parti)->(
     standard := standardTableaux parti;
     matrixRepresentation(standard)
     )
+
+
+
 
 
 end

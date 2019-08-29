@@ -1,7 +1,9 @@
 
-path = append(path,"/M2/M2/Macaulay2/packages")
+path = append(path,"~/M2/M2/Macaulay2/packages")
+
 loadPackage("SpechtModule",FileName => "~/M2/M2/Macaulay2/packages/SpechtModule.m2",Reload => true)
-loadPackage("SpechtModule",FileName => "~/SpechtModule.m2",Reload => true)
+loadPackage("SpechtModule",FileName => "~/SpechtModule.m2",Reload => true
+loadPackage("SpechtModule",Reload => true)
 charac = characterTable 5
 p1 = new Partition from {1,1,1,1,1}
 p2 = new Partition from {2,1,1,1}
@@ -9,6 +11,9 @@ charac_(p1,p2)
 
 
 y = youngTableau( p ,{2,3,4,0,1})
+e = spechtModuleElement(y,1)
+sortColumnsTableau e
+e
 g = garnirElement (y,1)
 e = straighteningAlgorithm (y,1) 
 y= youngTableau( p ,{1,2,0,4,3})
@@ -21,12 +26,15 @@ stan = standardTableaux p
 permutation = {1,2,3,4,0}
 perm2 = permutation_(flatten entries stan#matrix^{0})
 
-
 y2 =  youngTableau (p,perm2)
 garnirElement y2
 straighteningAlgorithm y2
 
-matrixRepresentation ({1,2,3,4,0},stan)
+M =matrixRepresentation ({1,2,3,4,0},stan)
+M1 =matrixRepresentation ({4,1,2,3,0},stan)
+M * M2
+p2 = conjugacyClass {1,2,3,4,0}
+charac_(p,p2)
 
 
 sortColumnsTableau y2
@@ -35,8 +43,7 @@ y2
 
 
 
-p2 = conjugacyClass {1,2,3,4,0}
-charac_(p,p2)
+
 
 
 p = new Partition from {3,2,2,1}
@@ -48,6 +55,22 @@ sort keys e
 stan = standardTableaux p  
 
 characterTable 4
+
+
+------
+-- Methods for object tableau
+------
+
+changeFilling = method()
+
+-- Assume that the initial values were then numbers from 0 to n-1
+-- The labels are given in increasing order
+
+changeFilling(List,YoungTableau):= (labels,tableau)-> (
+    tab := youngTableau(tableau);
+    tab#values = labels;
+    tab
+    )
 
 
 sortPermutationSign = method()
