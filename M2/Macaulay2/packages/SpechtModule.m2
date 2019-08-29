@@ -13,6 +13,9 @@ newPackage(
         DebuggingMode => true
         )
 		
+
+export {"CharacterTable"}
+export {"characterTable"}
 		
 export {"YoungTableau"}
 export {"youngTableau"}
@@ -30,8 +33,6 @@ export {"semistandardTableaux"}
 export {"rowPermutationTableaux"}
 
 export {"indexTableau"}
-
-export {"changeFilling"}
 
 export {"hookLengthFormula"}
 export {"cycleDecomposition"}
@@ -52,27 +53,21 @@ export {"signPermutation"}
 
 export {"combinations"}
 export {"garnirElement"}
-export {"orderColumnsTableau"}
+export {"sortColumnsTableau"}
 export {"cardinalityOfConjugacyClass"}
-export {"differentElementsInPartition"}
 
 
 export{"multinomial"}
 export {"straighteningAlgorithm"}
 
-export {"firstRowDescent"}
-export {"columnDominance"}
+export {"SpechtModuleElement"}
+export {"toVector"}
 
-export {"permutationsFixColumn"}
-export {"permutationsFixRow"}
 export {"productPermutationsList"}
 export {"permutationSign"}
 export {"rowDescentOrder"}
-export {"sortColumnsTableau"}
 export {"sortColumn"}
-
-export {"SpechtModuleTerm"}
-export {"SpechtModuleElement"}
+export {"firstRowDescent"}
 
 protect \ {row,column}
 ---
@@ -95,7 +90,206 @@ protect \ {row,column}
 
 
 
---Constructors
+CharacterTable = new Type of MutableHashTable
+
+--------------------
+-- Constructors
+--------------------
+characterTable = method(TypicalValue => CharacterTable)
+characterTable ZZ := n -> (
+    
+    charTables := new MutableHashTable;
+    
+    
+    
+    
+    for i from 1 to n do (
+	
+	 
+	charTable := new CharacterTable;
+	partis := partitions i;
+	charTable#index = hashTable apply(#partis, i-> partis#i => i);
+    	charTable#length = #(partis);
+    	charTable#degree = i;
+    	charTable#values = mutableMatrix(ZZ,charTable#length,charTable#length);
+    	charTables#i = charTable;
+	--print("ok");
+	y:= partitions(i);
+	for j  to #y-1 do (
+	    
+	    for k from j to #y-1 do (
+		val:= calculateNumberOfEquals(y#(j),y#(k),charTables);
+		--print("ok");
+		(charTables#i)_(j,k)=val;
+	    );
+	);
+        --print("Table",i);
+    	--print((charTables#i)#values);	
+    ); 
+   charTable := reduceCharacterTable(charTables#n);
+   charTable#values = matrix charTable#values;
+   charTable
+)
+
+    
+       
+	
+
+
+CharacterTable_Sequence:=(charTable,seq)-> (
+    if #seq != 2 then error "expected a sequence of length 2";
+    (a,b) := seq;
+    if(class a === Partition) then (
+	if sum toList a != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else a=charTable#index#a)
+    else (if class a =!= ZZ then error "expected argument 1 to be a partition or an integer");	
+     
+     if(class b === Partition) then (
+	if sum toList b != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else b=charTable#index#b)
+    else if class b =!= ZZ then error "expected argument 2 to be a partition or an integer";
+    charTable#values_(a,b)
+    )
+
+-- Method to modify the entries of the character table.
+-- Inputs:
+--     a:ZZ or Partition
+--    	the index of the row
+--     b:ZZ or Partition
+--    	  the index of the column
+--     val:ZZ
+--       the value to put in the method
+--     charTable:CharacterTable
+--    	 the character table
+
+CharacterTable_Sequence = (charTable,seq,e)-> (
+    if #seq != 2 then error "expected a sequence of length 2";
+    (a,b) := seq;
+    if(class a === Partition) then (
+	if sum toList a != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else a=charTable#index#a)
+    else (if class a =!= ZZ then error "expected argument 1 to be a partition or an integer");	
+     
+     if(class b === Partition) then (
+	if sum toList b != charTable#degree then (error "expected a partition of size "|charTable#degree)
+	else b=charTable#index#b)
+    else if class b =!= ZZ then error "expected argument 2 to be a partition or an integer";
+    charTable#values_(a,b)=e;
+    e
+    )
+
+
+
+
+-- This method calculates the inner product of characters
+-- The characters are presented as rows of the character table
+-- To calculate the inner product it is necessary to calculate the size of the conjugaci classes of S_n
+-- Inputs
+--    n:ZZ
+--    	  The degree of the symmetric group. It is used to calculate the partitions of n
+--    C:MutableMatrix
+--    	  The firts character. It is represented as a mutable matrix with a single row.
+--    X:MutableMatrix
+--    	  THe second character.
+-- Outputs
+--    :ZZ
+--    	The inner product of characters C and X.	  
+
+innerProduct = method(TypicalValue => ZZ)
+innerProduct(ZZ,MutableMatrix,MutableMatrix) := (n,C,X) -> (
+    prod:=0;
+    p:=partitions(n,n);
+    for i to numColumns(C)-1 do(
+        prod=prod+(C_(0,i))*(X_(0,i))*(cardinalityOfConjugacyClass(p#(i)));
+    ); 
+    prod//(n)!
+)
+
+
+net CharacterTable := charTable -> (
+    net(charTable#values)
+    )
+
+
+-- This method applies Gram-Schmidt to the table of permutation characters.
+-- This method uses the fact that a permutation module consists of a direct sum
+-- of a copy of the irreducible Specht module S^\lambda and some copies of
+-- Specht modules S^\mu such that \mu> \lambda in lexicographical order
+-- Finally, since the irreducible characters are an orthonormal basis of the space of
+-- characters of S_n, by applying Gram-Schmitd in lexicograhical order the character table
+-- is obtained.
+-- Inputs
+--    charTable:CharacterTable
+--    	  The character table containing the characters of the permutation modules of S_n
+-- Outputs
+--    :CharacterTable
+--    	Returns the character table of irreducible characters of S_n.	  
+reduceCharacterTable = method(TypicalValue => CharacterTable)
+reduceCharacterTable CharacterTable  := charTable -> (
+    for i to charTable#length-1 do(
+    
+        for j to  i-1 do(
+            
+            c := innerProduct(charTable#degree,(charTable#values)^{i},(charTable#values)^{j});
+            for k to charTable#length-1 do(
+		val:= charTable_(i,k)-c*charTable_(j,k);
+                charTable_(i,k)=val;
+            );
+     );
+    	
+    );
+   
+    charTable
+)
+
+
+
+-- This method calculates recursively the entry of the character of the permutation module M^\lambda (partition 1) of
+-- the conjugacy class K index by the partition \mu (partition2).
+-- Inputs
+--    partition1:Partition
+--    	  A partition that indexes the character M^\lambda
+--    partition2:Partition
+--    	  A partition that indexes the conjugacy class K    	
+-- Outputs
+--    :ZZ
+--      The value of the permutation character  
+calculateNumberOfEquals = method(TypicalValue => ZZ )
+calculateNumberOfEquals(Partition, Partition,MutableHashTable):= (partition1, partition2,charTables)->(
+    
+    z:=0;
+    if(sum(toList partition1) == sum(toList partition2)) then (
+    	if #partition1 == 1 then (z = 1;)
+	else ( 
+    	    border:= partition2#0;
+	    partition2 = drop(partition2,1);
+	    for i to #partition1-1 when partition1#i>=border do(
+	    	c:= new MutableList from partition1;
+		c#i = c#i-border;
+	        newPartition := new Partition from reverse sort toList c;
+		if(newPartition#(-1) == 0)
+		    then (newPartition = drop(newPartition,-1););
+		if(#newPartition == 0)
+		    then (z= z+ 1;)
+		else(
+		    
+		    --print(newPartition);
+		    --print(partition2);
+		    currentTableNumber:=sum(toList newPartition);
+		    z = z+(charTables#currentTableNumber)_(newPartition,partition2);
+		    --print("ok");
+		    --print(z);
+		);
+		
+	    );
+	    
+	);    
+    ) else error "Partition dimensions do not match";
+    z
+)
+
+
+
 
 YoungTableau = new Type of MutableHashTable
 youngTableau = method(TypicalValue => YoungTableau)
@@ -864,10 +1058,17 @@ combinations(ZZ,ZZ):= (n,m)->(
 )   
 
 
-SpechtModuleElement = new Type of MutableHashTable 
+SpechtModuleElement = new Type of HashTable 
 
 spechtModuleElement = method()
-spechtModuleElement (YoungTableau, ZZ) := (tableau,coef)-> new SpechtModuleElement from new MutableHashTable from hashTable {tableau => coef} 
+spechtModuleElement (YoungTableau, ZZ) := (tableau,coef)-> (
+    new SpechtModuleElement from hashTable {partition => tableau#partition, 
+	values => new MutableHashTable from hashTable {toList tableau#values => coef}} 
+)
+
+spechtModuleElement (Partition, MutableHashTable):= (p,v) ->(
+    new SpechtModuleElement from hashTable {partition => p, values => v}
+    )
 
 netTerm = method()
 netTerm (YoungTableau,ZZ) := (tableau,coef)-> (
@@ -878,89 +1079,114 @@ netTerm (YoungTableau,ZZ) := (tableau,coef)-> (
     else coef | " " |net tableau    
     )
 
-ZZ * SpechtModuleElement := (c,element) ->(
-    applyValues (element,v-> if c!= 0 then v * c else continue)
+QQ * SpechtModuleElement := (c,element) ->(
+     spechtModuleElement (element#partition, new MutableHashTable from applyValues (new HashTable from element#values,v-> if c!= 0 then v * c else continue))
     )
+
+ZZ * SpechtModuleElement := (c,element) ->(
+    spechtModuleElement (element#partition, new MutableHashTable from applyValues (new HashTable from element#values,v-> if c!= 0 then v * c else continue))
+    )
+
+
 
 --first SpechtModuleElement := A -> new SpechtModuleTerm from {first keys(A),first values(A)}
 
 --last SpechtModuleElement := A -> new SpechtModuleTerm from {last keys(A),last values(A)}
 
-trim SpechtModuleElement := A -> scan (keys(A), tabloid -> if A#tabloid == 0 then remove (A,tabloid))
+trim SpechtModuleElement := A -> scan (keys(A#values), tabloid -> if A#tabloid == 0 then remove (A#values,tabloid))
 
 
 
 SpechtModuleElement + SpechtModuleElement := (A,B)-> (
-      
-     merge(A,B,(i,j)->(if i+j != 0 then i+j else continue))
+     if(A#partition===B#partition) then (
+     	 v := merge(A#values,B#values,(i,j)->(if i+j != 0 then i+j else continue));
+	spechtModuleElement(A#partition,v)
+     ) else error "The elements do not belong to the same SpechtModule"
+     
+    )
+
+SpechtModuleElement - SpechtModuleElement := (A,B)-> (
+     A +(-1)*B
     )
 
 terms SpechtModuleElement:= A -> (
-    apply(keys A, tabloid-> (tabloid,A#tabloid))
+    apply(keys A#values, tabloid-> (youngTableau(A#partition,tabloid),A#values#tabloid))
     )
 
 net SpechtModuleElement := A -> (
     netElement :=  net {};
-    tabloids := sort keys A;
-    if #keys A > 0 then t := first tabloids ; netElement = netTerm(t,A#t);
+    tabloids := sort apply(keys A#values, t->  youngTableau(A#partition,t));
+    if #tabloids > 0 then (
+	t := first tabloids ; 
+	netElement = netTerm(t,A#values#(toList t#values));
     for t in drop(tabloids,1)  do (
-	if A#t >0 then netElement = netElement | " + " | netTerm (t,A#t)
-	else if A#t < 0 then netElement = netElement | " - " | netTerm (t,-A#t);
+	if A#values#(toList t#values) >0 then netElement = netElement | " + " | netTerm (t,A#values#(toList t#values))
+	else if A#values#(toList t#values) < 0 then netElement = netElement | " - " | netTerm (t,-(A#values#(toList t#values)));
 	--print netElement;
 	);
+    );
     netElement
     )
+
 
 ---
 straighteningAlgorithm = method(TypicalValue=> List)
 straighteningAlgorithm(YoungTableau,ZZ):= (tableau,coef) ->(
-    sign:= sortColumnsTableau(tableau);
-    element:= spechtModuleElement(tableau,coef);
-    notStandard := select(1, keys element, t-> firstRowDescent(t) > (-1,-1));
+    newTableau := youngTableau tableau;
+    sign:= sortColumnsTableau(newTableau);
+    element:= spechtModuleElement(newTableau,sign*coef);
+    notStandard := select(1, terms element, t-> firstRowDescent(t#0) > (-1,-1));
     while #notStandard != 0  do( 
-	--printTableau(tableaux#0#0);
-       	notStandard = first notStandard;
-	garnir:= garnirElement(notStandard,element#notStandard);
-	element = remove (element,notStandard) + garnir;
+	notStandard = first notStandard;
+	garnir:= garnirElement(notStandard);
+	print net (notStandard,garnir);
+	--error "Stop";
+	element = element - garnir;
 	print net element;
-	notStandard = select(1, keys element, t-> firstRowDescent(t) > (-1,-1));   	
+	notStandard = select(1, terms element, t-> firstRowDescent(t#0) > (-1,-1)); 	
 	); 
     element 
     )
+ 
 
 straighteningAlgorithm(YoungTableau):= tableau -> straighteningAlgorithm(tableau,1)
 
+
 garnirElement = method()
 garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
-    (a,b):= firstRowDescent tableau;
-    ans:=  spechtModuleElement(tableau,coef);
-    garnir := (tableau,coef);
+    newTableau := youngTableau tableau;
+    sign:=sortColumnsTableau(newTableau);
+    coef = sign*coef;
+    ans:=  {spechtModuleElement(newTableau,coef)};
+    (a,b):= firstRowDescent newTableau;
     if (a,b) != (-1,-1) then ( 
     	conju:= conjugate tableau#partition;
-    	combs:= combinations(conju#a+1,b+1);
+    	combs:= combinations(conju#b+1,a+1);
     	--print(a,b);
-	AB:= (tableau_(a+1))_{0..b}|(tableau_(a))_{b..conju#a-1};
+	AB:= (newTableau_(b+1))_{0..a}|(newTableau_(b))_{a..conju#b-1};
      	--print(AB);
-	ans = apply (drop(combs,1),comb->(
-	    newTableau:= youngTableau(tableau);
-	   --print(comb);
-	    for j to b do(
-		newTableau_(j,a+1)= AB#(comb#j);
+	ans = apply (combs,comb->(
+	    --print(comb);
+	    newTableau = youngTableau newTableau;
+	    for j to a do(
+		newTableau_(j,b+1)= AB#(comb#j);
 	    	);
-	    for j from b+1 to conju#a do (  
-	    	newTableau_(j-1,a) = AB#(comb#j);
+	    for j from a+1 to conju#b do (  
+	    	newTableau_(j-1,b) = AB#(comb#j);
 		);
 	    --print net newTableau;
-	    sign:=sortColumnsTableau(newTableau);
+	    sign=sortColumnsTableau(newTableau);
 	    --print net newTableau;
-	    spechtModuleElement (newTableau, -(coef) *sign*permutationSign(conjugacyClass(comb)))
+	    spechtModuleElement (newTableau, (coef) *sign*permutationSign(conjugacyClass(comb)))
       	    ));
     	
 	);
-    
+    --error "Stop";
     --print(ans);
     sum ans
     )
+
+garnirElement( YoungTableau) := tableau -> garnirElement(tableau,1)
 
 sortColumnsTableau = method()
 sortColumnsTableau YoungTableau := tableau -> (
@@ -1018,175 +1244,60 @@ firstRowDescent YoungTableau := tableau -> (
     )
 
 
-
-bubbleSort = method()
-bubbleSort(List):= lista ->(
-    
-    lista = new MutableList from lista;
-    sign:=1;
-    sorted:= false;
-    ini:=0;
-    while not sorted do (
-	
-	sorted= true;
-     	if(ini>0) then ini = ini-1;
-	for i from ini to #lista-2 do(
-	    if(lista#i>lista#(i+1)) then(
-		sorted = false;
-		temp := lista#i;
-		lista#i = lista#(i+1);
-		lista#(i+1)= temp;
-		sign=sign*(-1);
-		);
-	    if(sorted) then(
-		ini = ini+1;
-		
-		);   
-	    
-	    );
-	);
-    (toList lista, sign) 
+toVector = method()
+toVector (SpechtModuleElement,HashTable):= (element,index) -> (
+    ans:=mutableMatrix (QQ,1,#index);
+    scan(keys element#values, t-> ans_(0,index#t)= element#values#t);
+    matrix ans
     )
 
-bubbleSort(List, MethodFunction):= (lista,compare) ->(
-    
-    lista = new MutableList from lista;
-    sign:=1;
-    sorted:= false;
-    ini:=0;
-    while not sorted do (
-	
-	sorted= true;
-     	if(ini>0) then ini = ini-1;
-	for i from ini to #lista-2 do(
-	    if compare(lista#i,lista#(i+1))>0 then(
-		sorted = false;
-		temp := lista#i;
-		lista#i = lista#(i+1);
-		lista#(i+1)= temp;
-		sign=sign*(-1);
-		);
-	    if(sorted) then(
-		ini = ini+1;
-		
-		);   
-	    
-	    );
-	);
-    (toList lista, sign) 
+toVector (SpechtModuleElement) := element -> (
+    stan:= standardTableaux element#partition;
+    index:= hashTable apply (stan#length,i->(flatten entries stan#matrix^{i} => i ));
+    toVector(element,index)
     )
 
-----
---Given an ordered list and a value it returns the index of the value in the list.
-----
 
-binarySearch = method(TypicalValue => ZZ)
-binarySearch(TableauList,YoungTableau,ZZ):=(standard,val,ini)->(
-    
-    a := ini;
-    b := standard#length;
-    c:=a;
-    fin:=false;
-    if flatten tableauToList(val) == flatten entries standard#matrix^{c} then (
-	
-	fin = true
-	);
-    while b-a>1 and  not fin do(
-	c= (b+a)//2;
-	--print(a,b,c);
-	if flatten tableauToList(val) == flatten entries standard#matrix^{c} then (
-	    a = c;
-	    b = c;
-	    fin = true
-	    )
-	else if flatten tableauToList(val) < flatten entries standard#matrix^{c} then (
-	    b = c;
-	    )
-	else(
-	    a = c;
-	    );
-	
-	);
-    if not fin then c = -1;
-    c
-    )
-    
 
 
 
 
 cardinalityOfConjugacyClass = method(TypicalValue => ZZ)
 cardinalityOfConjugacyClass(Partition) := p -> (
-    p2 := differentElementsInPartition(p);
-    base := keys(p2);
-    prod := 1;
-    for i to #(base)-1 list prod do (prod = prod*((base#i)^(p2#(base#i)))*(p2#(base#i))!);
+    tal := tally(toList p);
+    base := keys(tal);
+    prod := product ( base, n-> ( n^(tal#n) ) * (tal#n)! );
     (sum toList p)!//prod
 )
 
 
 
-
-
-
------
--- This method codes 
------
-
 matrixRepresentation = method()
-matrixRepresentation(List,TableauList) := (perm,standard)-> ( 
+matrixRepresentation(List,TableauList) := (permutation,standard)-> ( 
     
-    mat := mutableMatrix(QQ,standard#length,standard#length);
-    for i to standard#length-1 do (
-    	perm2 := perm_(flatten entries standard#matrix^{i});
-    	y:= youngTableau(standard#partition,perm2);
-	--printTableau(y);
-	lineal := straighteningAlgorithm y;
-	ini := 0;
-	for j to #lineal -1 do (
-	    
-	    ind:= binarySearch(standard,lineal#j#0,ini);
-	    --print(lineal#j#0,ind);
-	    --printTableau(lineal#j#0);
-	    mat_(ind,i)= lineal#j#1;
-	    ini = ind+1;
-	    );
-	);
-    matrix(mat)
+   index:= hashTable apply (standard#length,i->(flatten entries standard#matrix^{i} => i ));
+   transpose matrix apply(standard#length,i->(
+	   permutation2 := permutation_(flatten entries standard#matrix^{i});
+	   {toVector (straighteningAlgorithm youngTableau(standard#partition,permutation2), index )})
+       )
+ 
 )
------
--- This method codes 
------
-irreducibleSpechtRepresentation = method()
-irreducibleSpechtRepresentation(Partition, PolynomialRing) := (parti, R)-> (
-    
-    lista := new MutableList;
-    n:=sum(toList parti);
-    perms := permutations(toList(1..n));
-    for i to #perms-1 do(
-	lista#i = matrixRepresentation(perms#i,parti,R)
-    );
-    toList(lista)
-)
+
+matrixRepresentation(TableauList) := (standard)-> (
+    hashTable apply(permutations sum toList standard#partition, perm-> perm=> matrixRepresentation(perm,standard))
+    )
+
+matrixRepresentation(List,Partition) := (permutation, parti)->(
+    standard := standardTableaux parti;
+    matrixRepresentation(permutation,standard)
+    )
+
+matrixRepresentation(Partition) := (parti)->(
+    standard := standardTableaux parti;
+    matrixRepresentation(standard)
+    )
+
 
 end
 
 
-path = append(path,"-/M2/M2/Macaulay2/packages")
-
-loadPackage("SpechtModule",Reload => true)
-
-p = new Partition from {3,2}
-y = youngTableau( p ,{2,3,4,0,1})
-sortColumnsTableau y
-y
-new SpechtModuleTerm from {y,2}
-stan = standardTableaux p  
-
-p = new Partition from {2,2,1}
-y = youngTableau( p ,{1,0,3,2,4})
-sortColumnsTableau y
-y
-e = garnirElement (y,1) 
-sort keys e
-stan = standardTableaux p  
