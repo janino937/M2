@@ -8,7 +8,7 @@ newPackage(
                   HomePage => "http://www.uniandes.edu.co"}},
         Headline => "Methods for the Efficient Compution of Invariants for Permutation Groups.",
         DebuggingMode => true,
-	PackageExports => {"SymmetricCharacterTable","SpechtModule","WreathSpechtModule"}
+	PackageExports => {"SpechtModule"}
 	
         )
     
@@ -31,10 +31,11 @@ export {"testMatrixRepresentation"}
 -- This method codes 
 -----
 permutePolynomial = method()
-permutePolynomial(PolynomialRing,List,Thing) := (R,perm, poly)->(
+permutePolynomial(List,PolynomialRing) := (poly,perm)->(
+    R := ring poly;
     genList:= apply(perm,i->R_(i) );
     F := map(R,R,matrix{genList});
-    F(poly)
+    F poly
 )
 
 -----
@@ -58,34 +59,6 @@ generateHigherSpechtPolynomial(YoungTableau,YoungTableau,PolynomialRing) := (S,T
       --error "generating polynomials";
 )
 
-generateHigherSpechtPolynomial(YoungTableauTuple,YoungTableauTuple,PolynomialRing) := (S,T,R)-> (
-    
-    pol := 1_R;
-    monomial := monomialGenerator(S,T,R);
-    for i to #S-1 do(
-	if(sum toList S#i#partition != 0) then (
-	pol = pol*generateHigherSpechtPolynomialRobust(monomial#i,T#i,R);
-	);
-    );
-    
-    pol = pol*characterRepresentationMonomial(T,R) ;
-    pol
-    )
-
-
--- Returns the monomial which corresponds to the character representation component of
--- the irreducible representation
-characterRepresentationMonomial = method()
-characterRepresentationMonomial(YoungTableauTuple,PolynomialRing) := (T,R) -> (
-    monomial:= 1_R;
-    for i from 1 to #T-1 do(
-	for j to sum toList T#i#partition -1 do(
-	    monomial = monomial*R_(T#i#j)^i
-	    );
-	
-	);
-    monomial
-    )
 
 
 
@@ -118,36 +91,7 @@ higherSpechtPolynomials (Partition , PolynomialRing) := (parti, R)-> (
 )
 
 
-higherSpechtPolynomials(TableauTupleList,PolynomialRing):= (standard, R)-> (
-    
-    sol := new MutableHashTable;
-    for i to standard#length -1 do (
-    	for j to standard#length -1 do(
-            sol#(i,j) = generateHigherSpechtPolynomial(getTableauTuple(standard,i),getTableauTuple(standard,j),R);
-        );
-    );
-    sol 
-    
-    )
 
---
--- Gives the list of higher specht polynomials which correspond to the irreducible
--- partition indexed by the partition tuple list.
---
-
-higherSpechtPolynomials(PartitionTuple,PolynomialRing):=(parti,R)-> (
-    
-      sol := new MutableHashTable;
-      standard := standardTableauTuples parti;
-      for i to standard#length -1 do (
-    	for j to standard#length -1 do(
-            sol#(i,j) = generateHigherSpechtPolynomial(getTableauTuple(standard,i),getTableauTuple(standard,j),R);
-        );
-    );
-    sol 
-    
-     
-)
 
 schurPolynomial = method()
 schurPolynomial(Partition, PolynomialRing, List) := (parti, R, labels)-> (
@@ -343,65 +287,6 @@ monomialGenerator (YoungTableau, YoungTableau, PolynomialRing) :=  (tableauS, ta
         error "The numbers of generators of the ring do not match the size of the tableau";
     );
     prod
-)
-
--- Generates the monomial from the tableau tuples  S and T
-
-monomialGenerator (YoungTableauTuple, YoungTableauTuple, PolynomialRing) :=  (tableauS, tableauT, R) -> (
-    r:=#tableauS;
-    prod:=new MutableList;
-    rec:= new MutableList;
-    base:= new MutableList;
-    expo:= new MutableList;
-    
-	     
-        rec#((numgens R)-1)=0;
-        prod#(#tableauS-1)=0;
-	ind:=0;
-	for k to #(tableauS)-1 do (
-	        
-	    numCols:= 0;
-	    if sum toList tableauS#k#partition != 0 then numCols = tableauS#k#partition#0;
-	    for i to (numCols)-1 do (
-            	col1 := getColumn(tableauS#k,i);
-            	col2 := getColumn(tableauT#k,i);
-            	if(#col1 == #col2) then (
-                    for j from 0 to #col1-1 do (
-                    	rec#ind = col1#(-j-1);
-                    	base#ind = col2#(-j-1);
-                    	ind= ind+1;
-                    	);
-            	    ) else error "YoungTableaux dimensions do not match";
-            );
-	);
-    	--print("First loop ok");
-        ind = 0;
-        m := 0;
-       	
-	print(toList rec);
-	print(toList base);
-        
-	expo#((numgens R)-1)=0;
-	
-	while m < numgens R do(
-            
-	    for i to #rec -1 do(
-                if(rec#i == m) then (
-                    m = m+1;
-                    expo#i = ind;
-                    )
-            );
-            ind = ind +1;
-        );
-    	ini:=0;
-    	for i to #tableauS -1 do (
-	    prod#i = 1_R;
-	    for j from ini to ini+sum(toList tableauS#i#partition)-1 do (
-	    	    prod#i = prod#i*R_(base#j)^(r*expo#j);	
-		); 
-	    ini = ini+sum(toList tableauS#i#partition);   
-	);
-    toList prod
 )
 
 

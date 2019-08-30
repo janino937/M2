@@ -64,6 +64,19 @@ export {"SpechtModuleElement"}
 export {"spechtModuleElement"}
 export {"toVector"}
 
+export {"permutationMatrix"}
+export {"permutePolynomial"}
+
+export {"vandermondeDiscriminant"}
+export {"spechtPolynomial"}
+export {"indexMonomial"}
+export {"higherSpechtPolynomial"}
+
+export {"spechtPolynomials"}
+export {"higherSpechtPolynomials"}
+
+
+
 export {"productPermutationsList"}
 export {"permutationSign"}
 export {"rowDescentOrder"}
@@ -449,6 +462,13 @@ YoungTableau == YoungTableau := (S,T) -> (
 
 
 entries YoungTableau := tableau -> toList tableau#values
+
+numcols YoungTableau := tableau -> tableau#partition#0
+
+numrows YoungTableau := tableau -> #tableau#partition
+
+size YoungTableau := tableau -> sum toList tableau#partition
+
 ------
 -- A method to give a graphical representation of a Young diagram. This method saves the
 -- diagram in a mutable matrix and then prints the matrix. 
@@ -1059,6 +1079,8 @@ spechtModuleElement (YoungTableau, ZZ) := (tableau,coef)-> (
 	values => new MutableHashTable from hashTable {toList tableau#values => coef}} 
 )
 
+spechtModuleElement YoungTableau := tableau -> spechtModuleElement(tableau,1)
+
 spechtModuleElement (Partition, MutableHashTable):= (p,v) ->(
     new SpechtModuleElement from hashTable {partition => p, values => v}
     )
@@ -1104,6 +1126,12 @@ SpechtModuleElement - SpechtModuleElement := (A,B)-> (
 
 terms SpechtModuleElement:= A -> (
     apply(keys A#values, tabloid-> (youngTableau(A#partition,tabloid),A#values#tabloid))
+    )
+
+List SPACE SpechtModuleElement:= (perm,element)->(
+    vals := applyKeys(new HashTable from element#values, t->(
+	    perm_t));
+    spechtModuleElement(element#partition,new MutableHashTable from vals)
     )
 
 net SpechtModuleElement := A -> (
@@ -1296,8 +1324,8 @@ matrixRepresentation(List,TableauList) := (permutation,standard)-> (
     
    index:= hashTable apply (standard#length,i->(flatten entries standard#matrix^{i} => i ));
    transpose matrix apply(standard#length,i->(
-	   permutation2 := permutation_(flatten entries standard#matrix^{i});
-	   {toVector (straighteningAlgorithm youngTableau(standard#partition,permutation2), index )})
+	   element:= spechtModuleElement(standard_i);
+	   {toVector (straighteningAlgorithm (permutation element), index )})
        )
  
 )
@@ -1317,8 +1345,54 @@ matrixRepresentation(Partition) := (parti)->(
     )
 
 
+permutationMatrix = method()
+permutationMatrix(List,PolynomialRing) := (permutation,R)->(
+    generatorList:= apply(permutation,i->R_(i) );
+    map(R,R,matrix{generatorList})
+)
+
+permutePolynomial = method()
+permutePolynomial (List, RingElement) := (permutation,polynomial)-> (
+    if(isPolynomialRing ring polynomial) then
+    (permutationMatrix(permutation,ring polynomial)) polynomial
+    
+    else error "argument is not a polynomial"
+)
+
+vandermondeDiscriminant = method()
+vandermondeDiscriminant(List,PolynomialRing):= (lista,R)->(
+    variables := apply(lista,i-> R_i);
+    product flatten apply (#lista, i->toList apply( (i+1)..(#lista-1),j-> (variables#j-variables#i) ) ) 
+    )
+
+spechtPolynomial = method()
+spechtPolynomial ( YoungTableau, PolynomialRing ) := (tableau, R)-> (
+    product (numcols tableau, i->vandermondeDiscriminant(tableau_i,R))
+    )
+
+higherSpechtPolynomial = method()
+higherSpechtPolynomial(RingElement, YoungTableau) := (monomial,T)->(
+    R := ring monomial;
+    sym:= sum (rowStabilizer T, sigma-> permutePolynomial(sigma,monomial));
+    sum (columnStabilizer T, tau -> permutationSign(tau)*permutePolynomial(tau,sym)) 
+    )
 
 
+higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := (S,T,R)->(
+    monomial := indexMonomial(S,T,R);
+    higherSpechtPolynomial(monomial,T)
+    )
+
+indexMonomial = method()
+indexMonomial(YoungTableau, YoungTableau, PolynomialRing) := (S,T,R) -> (
+    ind := indexTableau S;
+    monomial:= 1_R;
+    if(toList S#partition == toList T#partition) then (
+    	monomial := product(size S, i -> R_((entries T)#i)^( (entries ind)#i) )
+    	) else error "tableaux 1 and 2 do not have the same shape";
+    monomial
+    )
+    
 
 end
 

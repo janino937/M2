@@ -1,41 +1,60 @@
 
 path = append(path,"~/M2/M2/Macaulay2/packages")
 
-loadPackage("SpechtModule",FileName => "~/M2/M2/Macaulay2/packages/SpechtModule.m2",Reload => true)
-loadPackage("SpechtModule",FileName => "~/SpechtModule.m2",Reload => true
 loadPackage("SpechtModule",Reload => true)
+loadPackage("SpechtPolynomials",Reload => true)
+
+R = QQ[x_1..x_5]
+vandermondeDiscriminant({0,2,4},R)
+p = new Partition from {3,2}
+y= youngTableau( p ,{1,2,0,4,3})
+indexMonomial(y,y,R)
+
+
+spechtPolynomial(y,R)
+higherSpechtPolynomial(y,y,R)
+M = permutationMatrix ({0,2,1}, R)
+factor oo
+
+M (x_2+x_3)
+
+permutePolynomial ({0,2,1},(x_2+x_3))
+
+
 charac = characterTable 5
 p1 = new Partition from {1,1,1,1,1}
 p2 = new Partition from {2,1,1,1}
 charac_(p1,p2)
 
 
-y = youngTableau( p ,{2,3,4,0,1})
-e = spechtModuleElement(y,1)
-sortColumnsTableau e
-e
+
+p = new Partition from {3,2}
+stan = standardTableaux p
+permutation = {1,2,3,4,0}
+perm2 = permutation_(flatten entries stan#matrix^{2})
+stan_2
+
+
+y2 =  youngTableau (p,perm2)
+garnirElement y2
+e = straighteningAlgorithm y2
+f = {4,0,1,2,3} e
+straighteningAlgorithm f
+
+M = matrixRepresentation ({1,2,3,4,0},stan)
+p2 = conjugacyClass {1,2,3,4,0}
+charac_(p,p2)
+
+M1 = matrixRepresentation ({4,0,1,2,3},stan)
+{1,2,3,4,0}_{4,0,1,2,3}
+M * M1
+
+
 g = garnirElement (y,1)
 e = straighteningAlgorithm (y,1) 
 y= youngTableau( p ,{1,2,0,4,3})
 g = garnirElement (y,1)
 e = straighteningAlgorithm (y) 
-
-
-p = new Partition from {3,2}
-stan = standardTableaux p
-permutation = {1,2,3,4,0}
-perm2 = permutation_(flatten entries stan#matrix^{0})
-
-y2 =  youngTableau (p,perm2)
-garnirElement y2
-straighteningAlgorithm y2
-
-M =matrixRepresentation ({1,2,3,4,0},stan)
-M1 =matrixRepresentation ({4,1,2,3,0},stan)
-M * M2
-p2 = conjugacyClass {1,2,3,4,0}
-charac_(p,p2)
-
 
 sortColumnsTableau y2
 y2
