@@ -47,6 +47,7 @@ export {"extendedPermutations"}
 export {"directProductOfPermutations"}
 
 export {"columnStabilizer"}
+
 export {"rowStabilizer"}
 
 export {"signPermutation"}
@@ -83,6 +84,7 @@ export {"rowDescentOrder"}
 export {"sortColumn"}
 export {"firstRowDescent"}
 
+export {"Robust","AsExpression"}
 protect \ {row,column}
 ---
 --YoungTableau
@@ -479,7 +481,7 @@ net YoungTableau := tableau ->(
     tableauNet:= "|" ;
     for i to corner-2 do tableauNet = tableauNet || "|"; 
     
-    for i to (tableau#partition#0)-1 do ( 
+    for i to numcols tableau-1 do ( 
 	column:= tableau_i;
 	columnString := " "|column#0;
 	for j from 1 to #column-1 do columnString = columnString|| " "|column#j;
@@ -576,6 +578,9 @@ TableauList_ZZ := (tableaux,n) -> (
      youngTableau(tableaux#partition,flatten entries tableaux#matrix^{n})
     ) 
 
+getRow = method()
+getRow (TableauList,ZZ) := (tableaux,i)-> flatten entries tableaux#matrix^{i}
+
 -- Methods
 
 ------
@@ -628,7 +633,7 @@ nextIndex (HashTable,Partition)  := (ind,p)->(
 ------
 maxPossibleNumber = method(TypicalValue => ZZ)
 maxPossibleNumber(YoungTableau,HashTable):= (tableau,ind) ->(
-  s:=sum(toList tableau#partition)-(tableau#partition)#(ind#row);
+  s:=sum(size tableau)-(tableau#partition)#(ind#row);
   s= s+ind#column;
   s
 )
@@ -802,7 +807,7 @@ recursiveSemistandardTableaux(ZZ,YoungTableau,TableauList,HashTable):= (maxNumbe
 readingWord = method()
 readingWord YoungTableau := tableau -> (
     
-    flatten apply (tableau#partition#0, i-> reverse tableau_i)
+    flatten apply (numcols tableau, i-> reverse tableau_i)
     )
 
 wordToTableau = method()
@@ -1359,6 +1364,18 @@ permutePolynomial (List, RingElement) := (permutation,polynomial)-> (
     else error "argument is not a polynomial"
 )
 
+permutePolynomial(List,Product) := (permutation,polynomial) -> (
+    new Product from apply (toList polynomial,f-> permutePolynomial(permutation,f))
+    )
+
+permutePolynomial(List,Sum) := (permutation,polynomial) -> (
+    new Sum from apply (toList polynomial,f-> permutePolynomial(permutation,f))
+    )
+
+permutePolynomial(List,Power) := (permutation,polynomial) -> (
+    new Power from {permutePolynomial(permutation,polynomial#0),polynomial#1}
+    )
+
 vandermondeDiscriminant = method()
 vandermondeDiscriminant(List,PolynomialRing):= (lista,R)->(
     variables := apply(lista,i-> R_i);
@@ -1370,17 +1387,11 @@ spechtPolynomial ( YoungTableau, PolynomialRing ) := (tableau, R)-> (
     product (numcols tableau, i->vandermondeDiscriminant(tableau_i,R))
     )
 
-higherSpechtPolynomial = method()
-higherSpechtPolynomial(RingElement, YoungTableau) := (monomial,T)->(
-    R := ring monomial;
-    sym:= sum (rowStabilizer T, sigma-> permutePolynomial(sigma,monomial));
-    sum (columnStabilizer T, tau -> permutationSign(tau)*permutePolynomial(tau,sym)) 
-    )
-
-
-higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := (S,T,R)->(
-    monomial := indexMonomial(S,T,R);
-    higherSpechtPolynomial(monomial,T)
+spechtPolynomials = method()
+spechtPolynomials (Partition,PolynomialRing):= (partition,R)-> (
+    standard:= standardTableaux partition;
+    firstPolynomial:= spechtPolynomial(standard_0,R);
+    hashTable apply (standard#length, i-> getRow(standard,i) => permutePolynomial(getRow(standard,i) , firstPolynomial) )
     )
 
 indexMonomial = method()
@@ -1388,11 +1399,51 @@ indexMonomial(YoungTableau, YoungTableau, PolynomialRing) := (S,T,R) -> (
     ind := indexTableau S;
     monomial:= 1_R;
     if(toList S#partition == toList T#partition) then (
-    	monomial := product(size S, i -> R_((entries T)#i)^( (entries ind)#i) )
+    	monomial = product(size S, i -> R_((entries T)#i)^( (entries ind)#i) )
     	) else error "tableaux 1 and 2 do not have the same shape";
     monomial
     )
+
+higherSpechtPolynomial = method(Options => {AsExpression => false , Robust => true})
+higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R)->(
+    ans:= R_0;
+    if(o.Robust) then (
+	monomial := indexMonomial(S,T,R);
+    	sym:= sum (rowStabilizer T, sigma-> permutePolynomial(sigma,monomial));
+    	polynomial:= sum (columnStabilizer T, tau -> permutationSign(tau)*permutePolynomial(tau,sym))*hookLengthFormula(S#partition)//(numgens R)!;
+	if o.AsExpression then ans = factor polynomial else ans = polynomial 
+    	)
+    else (
+	ans = R_1;
+	);
+    ans
+   )
+
+
     
+higherSpechtPolynomials = method(Options => {AsExpression => false , Robust => true})
+higherSpechtPolynomials(Partition,PolynomialRing):= o-> (partition,R) -> (
+    
+    standard:= standardTableaux partition;
+    hashTable apply(standard#length, i-> getRow(standard,i) => higherSpechtPolynomials(standard_i,standard,R, Robust => o.Robust, AsExpression => o.AsExpression))
+    )
+
+higherSpechtPolynomials(YoungTableau,PolynomialRing):= o->(S,R)-> (
+    standard:= standardTableaux S#partition;
+    higherSpechtPolynomials(S,standard,R,AsExpression => o.AsExpression, Robust => o.Robust)
+    )
+
+
+higherSpechtPolynomials(YoungTableau,TableauList,PolynomialRing):= o->(S,standard,R)-> (
+    firstPolynomial:= higherSpechtPolynomial(S,standard_0,R,Robust => o.Robust, AsExpression => o.AsExpression);
+    hashTable apply (standard#length, i-> getRow(standard,i)=> permutePolynomial(getRow(standard,i),firstPolynomial))
+    )
+
+higherSpechtPolynomials PolynomialRing := o-> R -> (
+     partis := partitions numgens R;
+     hashTable apply(partis,p-> p=> higherSpechtPolynomials(p,R,Robust => o.Robust, AsExpression => o.AsExpression))
+    )
+
 
 end
 

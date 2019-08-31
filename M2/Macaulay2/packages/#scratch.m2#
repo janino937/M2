@@ -5,7 +5,7 @@ exit
 loadPackage("SpechtModule",Reload => true)
 --loadPackage("SpechtPolynomials",Reload => true)
 
-R = QQ[x_0..x_5]
+R = QQ[x_0..x_6]
 time higherSpechtPolynomials R ;
 time higherSpechtPolynomials (R,AsExpression => true);
 
