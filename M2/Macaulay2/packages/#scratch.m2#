@@ -13,7 +13,7 @@ R = QQ[x_1..x_10]
 G = {{0,2,1}}
 G = {{0,1,2,3}}
 R = QQ[x_1..x_4]
-secondaryInvariants(G,R)
+secondaryInvariants(G,R,AsExpression => true)
 
 
 

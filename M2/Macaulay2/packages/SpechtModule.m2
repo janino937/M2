@@ -88,7 +88,7 @@ export {"generalizedVandermondeMatrix"}
 export {"Robust","AsExpression","GenerateGroup"}
 export {"generatePermutationGroup"}
 export {"representationMultiplicity"}
-
+export {"secondaryInvariants"}
 protect \ {row,column}
 ---
 --YoungTableau
@@ -1502,14 +1502,48 @@ representationMultiplicity(List,Partition):= (group,partition)-> (
     )
 
 
-secondaryInvariants = method(Options => {GenerateGroup => true })
+vectorToPolynomial = method()
+vectorToPolynomial(List,HashTable,TableauList):= (vector, basis,standard)->(
+   	sum ( #vector, i-> if(vector#i == 0) then 0 else vector#i*basis#( getRow(standard,i))  )
+	
+    )
+
+secondaryInvariants = method(Options => {GenerateGroup => true, AsExpression => false })
 secondaryInvariants(List,PolynomialRing):= o->(gens,R)-> (
-    	if size gens#0 != numgens R then error "the size of the elements does not match the number of generators of R";
+    	if #gens#0 != numgens R then error "the size of the elements does not match the number of generators of R";
 	H := generatePermutationGroup gens;
 	tal := tally apply (H,h->conjugacyClass h);
        	partis := partitions numgens R;
-	
+	charTable := characterTable numgens R;
+	hashTable apply (partis, p-> (
+		if representationMultiplicity(tal,p,charTable)== 0 then p=> {}
+		else (
+		    standard := standardTableaux p;
+		    isotypicalComponentBasis := higherSpechtPolynomials(p,R,AsExpression => o.AsExpression);
+		    if representationMultiplicity(tal,p,charTable)==standard#length then (
+		    	
+			index:= hashTable apply (standard#length, i-> getRow(standard,i)=> i);
+			p => hashTable apply(keys isotypicalComponentBasis, S->( S=> 
+				applyKeys(isotypicalComponentBasis#S, T-> index#T) ) )			 
+		    ) else
+		    (
+		    	V:=(coefficientRing R)^(standard#length);
+			for h in gens do (
+			    M:= matrixRepresentation(h,standard);
+			    V = intersect(V,ker ( M - id_(source M ) ) );
+			    );
+			vectors:= generators V;
+			p => hashTable apply (keys isotypicalComponentBasis,S-> ( S => 
+			       hashTable apply (numColumns vectors, i-> i=> 
+				   (vectorToPolynomial(flatten entries vectors_{i},isotypicalComponentBasis#S,standard ))) ))
+				
+		    )
+		)
+	    )
+	)
     )
+
+
 
 end
 
