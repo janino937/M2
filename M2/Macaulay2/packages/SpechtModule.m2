@@ -68,7 +68,7 @@ export {"toVector"}
 export {"permutationMatrix"}
 export {"permutePolynomial"}
 
-export {"vandermondeDiscriminant"}
+export {"vandermondeDeterminant"}
 export {"spechtPolynomial"}
 export {"indexMonomial"}
 export {"higherSpechtPolynomial"}
@@ -83,8 +83,12 @@ export {"permutationSign"}
 export {"rowDescentOrder"}
 export {"sortColumn"}
 export {"firstRowDescent"}
+export {"schurPolynomial"}
+export {"generalizedVandermondeMatrix"}
+export {"Robust","AsExpression","GenerateGroup"}
+export {"generatePermutationGroup"}
+export {"representationMultiplicity"}
 
-export {"Robust","AsExpression"}
 protect \ {row,column}
 ---
 --YoungTableau
@@ -194,6 +198,9 @@ CharacterTable_Sequence = (charTable,seq,e)-> (
     e
     )
 
+CharacterTable_Partition := (charTable, p)->charTable#matrix_{charTable#index#partition}
+
+CharacterTable^Partition := (charTable, p)->charTable#matrix^{charTable#index#partition}
 
 
 
@@ -867,7 +874,7 @@ rowPermutationTableaux(YoungTableau) := (tableau)->(
     newTableau:= youngTableau(tableau#partition,size:(-1));
     --setIndex({0,0,0},newTableau);
     recursiveRowPermutationTableaux((#tableau#partition-1,0),numbers,newTableau,tableaux);
-    tableaux
+    toListOfTableaux tableaux
 )
 
 -----
@@ -1376,15 +1383,16 @@ permutePolynomial(List,Power) := (permutation,polynomial) -> (
     new Power from {permutePolynomial(permutation,polynomial#0),polynomial#1}
     )
 
-vandermondeDiscriminant = method()
-vandermondeDiscriminant(List,PolynomialRing):= (lista,R)->(
+vandermondeDeterminant = method(Options => {AsExpression => false})
+vandermondeDeterminant(List,PolynomialRing):= o-> (lista,R)->(
     variables := apply(lista,i-> R_i);
-    product flatten apply (#lista, i->toList apply( (i+1)..(#lista-1),j-> (variables#j-variables#i) ) ) 
+    if o.AsExpression then product flatten apply (#lista, i->toList apply( (i+1)..(#lista-1),j-> new Power from {(variables#j-variables#i),1} ) )
+    else product flatten apply (#lista, i->toList apply( (i+1)..(#lista-1),j-> (variables#j-variables#i) ) )
     )
 
 spechtPolynomial = method()
 spechtPolynomial ( YoungTableau, PolynomialRing ) := (tableau, R)-> (
-    product (numcols tableau, i->vandermondeDiscriminant(tableau_i,R))
+    product (numcols tableau, i->vandermondeDeterminant(tableau_i,R))
     )
 
 spechtPolynomials = method()
@@ -1406,7 +1414,9 @@ indexMonomial(YoungTableau, YoungTableau, PolynomialRing) := (S,T,R) -> (
 
 higherSpechtPolynomial = method(Options => {AsExpression => false , Robust => true})
 higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R)->(
+    if toList S#partition != toList T#partition then error "tableau shapes of S and T do not match";
     ans:= R_0;
+    
     if(o.Robust) then (
 	monomial := indexMonomial(S,T,R);
     	sym:= sum (rowStabilizer T, sigma-> permutePolynomial(sigma,monomial));
@@ -1414,7 +1424,9 @@ higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R
 	if o.AsExpression then ans = factor polynomial else ans = polynomial 
     	)
     else (
-	ans = R_1;
+	
+	rowPermutations := rowPermutationTableaux indexTableau S;
+	ans = sum(rowPermutations, tab -> product apply (numcols S, i->determinant generalizedVandermondeMatrix(T_i,tab_i,R)));
 	);
     ans
    )
@@ -1444,6 +1456,60 @@ higherSpechtPolynomials PolynomialRing := o-> R -> (
      hashTable apply(partis,p-> p=> higherSpechtPolynomials(p,R,Robust => o.Robust, AsExpression => o.AsExpression))
     )
 
+generalizedVandermondeMatrix = method()
+generalizedVandermondeMatrix(List,List,PolynomialRing):= (indices, exponents, R) -> (
+    if #indices != #exponents then error "number of indices and exponents does not match";
+    M := matrix apply (exponents, e-> apply (indices, i-> (R_i)^e));
+    M
+    )
+
+schurPolynomial = method()
+schurPolynomial(List,List,PolynomialRing) := (indices, exponents, R) -> (
+    
+    determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R)
+    
+    )
+
+
+generatePermutationGroup = method()
+generatePermutationGroup List := gens -> (
+    	group:= hashTable apply (gens , g -> g=> 0 );
+	products:= group;
+	for g in keys group do products = merge (products, applyKeys (group, h-> g_h), (i,j)-> i+j);
+	while #group < #products do(
+	  group = products;
+	  products = group;
+	  for g in keys group do products = merge (products, applyKeys (group, h-> g_h), (i,j)-> i+j);
+	    );
+    	keys group
+    )
+
+representationMultiplicity = method()
+representationMultiplicity(List,Partition,CharacterTable):= (group,partition,charTable)-> (
+    
+    tal := tally apply(group, g-> conjugacyClass g);
+    representationMultiplicity(tal,partition,charTable)
+    )
+
+representationMultiplicity(Tally,Partition,CharacterTable):= (tal,partition,charTable)-> (
+       partis:= partitions sum toList partition;
+       sum(keys tal, p ->(charTable_(partition,p)*tal#p))// sum values tal
+    )
+
+representationMultiplicity(List,Partition):= (group,partition)-> (
+    charTable := characterTable sum toList partition;    
+    representationMultiplicity(group,partition,charTable)
+    )
+
+
+secondaryInvariants = method(Options => {GenerateGroup => true })
+secondaryInvariants(List,PolynomialRing):= o->(gens,R)-> (
+    	if size gens#0 != numgens R then error "the size of the elements does not match the number of generators of R";
+	H := generatePermutationGroup gens;
+	tal := tally apply (H,h->conjugacyClass h);
+       	partis := partitions numgens R;
+	
+    )
 
 end
 

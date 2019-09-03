@@ -5,9 +5,52 @@ exit
 loadPackage("SpechtModule",Reload => true)
 --loadPackage("SpechtPolynomials",Reload => true)
 
-R = QQ[x_0..x_5]
+generatePermutationGroup {{0,1,2}}
+generatePermutationGroup {{0,2,1},{1,2,0}}
+G= generatePermutationGroup {{5,1,8,3,4,0,7,6,2,9},{4,0,1,2,3,7,8,9,5,6}};
+
+
+
+partis = partitions 10
+charTable = characterTable 10;
+tal = tally apply (G,g->conjugacyClass g)
+l = apply(partis,p-> representationMultiplicity(tal,p,charTable))
+l = apply(partis,p-> representationMultiplicity(tal,p,charTable)*hookLengthFormula p)
+sum l
+l
+
+tal := tally apply(G, g-> conjugacyClass g)
+time G
+#G
+n = 5
+R = QQ[x_0..x_(n-1)]
+ind = toList (0..((n-1)))
+time vandermondeDeterminant(ind,R);
+time vandermondeDeterminant(ind,R,AsExpression => true)
+
+p = new Partition from toList (n:1)
+y = youngTableau(p,0..(n-1))
+time spechtPolynomial(y,R)
+time value spechtPolynomial(y,R);
+time higherSpechtPolynomial(y,y,R);
+time factor higherSpechtPolynomial(y,y,R)
+
+schurPolynomial({0,1,2},{0,2,4},R)
+schurPolynomial({0,1,2},{0,4,2},R)
+
+
+time determinant generalizedVandermondeMatrix(ind,ind,R);
+
+# hashTable {}
+
+n = 7
+R = QQ[x_0..x_(n-1)]
+
 time higherSpechtPolynomials R ;
+time higherSpechtPolynomials (R,Robust => false) ;
 time higherSpechtPolynomials (R,AsExpression => true);
+
+
 
 
 vandermondeDiscriminant({0,2,4},R)
