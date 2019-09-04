@@ -2,13 +2,19 @@
 path = append(path,"~/M2/M2/Macaulay2/packages")
 break
 exit
+restart
 loadPackage("SpechtModule",Reload => true)
 --loadPackage("SpechtPolynomials",Reload => true)
 
 generatePermutationGroup {{0,1,2}}
 generatePermutationGroup {{0,2,1},{1,2,0}}
 G = generatePermutationGroup {{5,1,8,3,4,0,7,6,2,9},{4,0,1,2,3,7,8,9,5,6}};
-R = QQ[x_1..x_10]
+R = QQ[x_1..x_3]
+schurPolynomial({0,1,2},{0,1,2},R)
+schurPolynomial({0,1,2},{0,1,2},R, Strategy => "semistandard_tableaux")
+
+schurPolynomial({0,1,2},{0,2,2},R)
+schurPolynomial({0,1,2},{0,2,2},R, Strategy => "semistandard_tableaux")
 
 G = {{0,2,1}}
 G = {{0,1,2,3}}

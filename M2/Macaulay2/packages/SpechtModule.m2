@@ -1230,7 +1230,7 @@ garnirElement(YoungTableau,ZZ):= (tableau,coef) -> (
     garnirElement(tableau,coef,a,b)
     )
 
-garnirElement( YoungTableau) := tableau -> garnirElement(tableau,1)
+garnirElement(YoungTableau) := tableau -> garnirElement(tableau,1)
 
 sortColumnsTableau = method()
 sortColumnsTableau YoungTableau := tableau -> (
@@ -1261,6 +1261,15 @@ sortColumn (YoungTableau,ZZ) := (tableau,i) -> (
     permutation:= apply(col,a->index#a );
     --error "test";
     permutationSign(permutation)
+    )
+
+rsortList = method()
+rsortList List := l -> (
+    sortedList := rsort l;
+    index := hashTable apply (#sortedList,i-> sortedList#i => i);
+    permutation:= apply(l,a->index#a);
+    --error "test";
+    (l,permutationSign(permutation))
     )
 
 
@@ -1463,12 +1472,41 @@ generalizedVandermondeMatrix(List,List,PolynomialRing):= (indices, exponents, R)
     M
     )
 
-schurPolynomial = method()
-schurPolynomial(List,List,PolynomialRing) := (indices, exponents, R) -> (
-    
-    determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R)
-    
+schurPolynomial = method(Options => {AsExpression => false, Strategy=>"determinant"})
+schurPolynomial(List,List,PolynomialRing) := o->(indices, exponents, R) -> (
+    ans:= 1_R;
+    if #indices != #exponents then error "size of indices and exponets does not match"; 
+    if o.Strategy == "determinant" then
+    ans = determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R)
+    else if o.Strategy == "semistandard_tableaux" then (
+	(sortedList,sign) := rsortList exponents;
+	sortedList =  sortedList - toList (0..(#sortedList-1));
+        print sortedList;
+	print decreasing sortedList;
+	if not decreasing sortedList then ans = 0_R else (
+	 notZero := position(sortedList,i->i==0);
+	 if(notZero === null) then notZero = #sortedList-1 else notZero = notZero -1;
+	 if(notZero >= 0 ) then 
+	(
+	    partition:= new Partition from sortedList_{0..notZero};
+	    print partition;
+	    semistandard := semistandardTableaux(partition, #indices );
+	    ans = sum(semistandard#length, i-> product(getRow(semistandard,i),j->R_(indices#j)));
+	    );
+	);
+    );
+    ans
     )
+
+increasing = method()
+increasing List := lista -> (
+    all(#lista-1, i-> lista#i <= lista#(i+1))
+)
+
+decreasing = method()
+decreasing List := lista -> (
+    all(#lista-1, i-> lista#i >= lista#(i+1))
+)
 
 
 generatePermutationGroup = method()
@@ -1504,8 +1542,7 @@ representationMultiplicity(List,Partition):= (group,partition)-> (
 
 vectorToPolynomial = method()
 vectorToPolynomial(List,HashTable,TableauList):= (vector, basis,standard)->(
-   	sum ( #vector, i-> if(vector#i == 0) then 0 else vector#i*basis#( getRow(standard,i))  )
-	
+   	sum ( #vector, i-> if(vector#i == 0) then 0 else vector#i*basis#( getRow(standard,i))  )	
     )
 
 secondaryInvariants = method(Options => {GenerateGroup => true, AsExpression => false })
