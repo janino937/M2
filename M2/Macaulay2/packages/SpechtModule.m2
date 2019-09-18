@@ -640,7 +640,7 @@ nextIndex (HashTable,Partition)  := (ind,p)->(
 ------
 maxPossibleNumber = method(TypicalValue => ZZ)
 maxPossibleNumber(YoungTableau,HashTable):= (tableau,ind) ->(
-  s:=sum(size tableau)-(tableau#partition)#(ind#row);
+  s:=(size tableau)-(tableau#partition)#(ind#row);
   s= s+ind#column;
   s
 )
@@ -1581,7 +1581,96 @@ secondaryInvariants(List,PolynomialRing):= o->(gens,R)-> (
     )
 
 
+beginDocumentation()
 
+/// multidoc
+
+Node 
+    Key
+    	(tabloids, Partition)
+	tabloids
+    Headline
+    	the list of tabloids for a given partition
+    Usage
+    	tabloids(p)
+    Inputs
+    	p:Partition
+    Outputs
+    	:TableauList
+	the list of tabloids
+    Description
+    	
+	Text
+	   Tabloids are the equivalence class of tableaux under the row permutation equivalence relation.
+	   Two tabloids are row permutation equivalent if one can be obtained from the other by permuting elements in its rows.
+	   For every tabloid there is a unique representative such that its rows
+	   are increasing. This representatives are the ones calculated by the method
+	   tabloids().
+	   
+	   Tabloids are the basis of the permutation modules from which the Specht Modules are constructed.
+	
+	Example
+	    
+	    p = new Partition from {3,2}
+	    tabloids p
+	    
+
+Node 
+    Key
+    	(standardTableaux, Partition)
+	standardTableaux
+    Headline
+    	the list of standard tableaux of shape p
+    Usage
+    	standardTableaux(p)
+    Inputs
+    	p:Partition
+    Outputs
+    	:TableauList
+	the list of standard tableaux
+    Description
+    	
+	Text
+    	    The standard tableaux of a given partition $\lambda$ are tableaux of shape p.
+	    Such that they are both row and column increasing. This set of tableaux are
+	    very important because they are in bijection with the basis of the Specht module
+	    $S^\lambda$.
+	    
+	    The method calculates this tableaux recursively filling the cells of the Ferrer diagram
+	    and checking if the rows and columns are still increasing.	
+	Example
+	    
+	    p = new Partition from {3,2}
+	    standardTableaux p
+	    
+Node 
+    Key
+    	(semistandardTableaux, Partition, ZZ)
+	semistandardTableaux
+    Headline
+    	the list of semistandard tableaux of shape p and filling with the numbers from 0 to n-1.
+    Usage
+    	standardTableaux(p,n)
+    Inputs
+    	p:Partition
+	    the shape of the tableaux
+	n:ZZ
+	    a limit of the range of numbers that appear in the tableaux
+    Outputs
+    	:TableauList
+	the list of semistandard tableaux
+    Description
+    	
+	Text
+    	    The elements in semistandard 	
+	Example
+	    
+	    p = new Partition from {3,2}
+	    standardTableaux p
+	    
+
+
+///    
 end
 
 

@@ -4,6 +4,7 @@ break
 exit
 restart
 loadPackage("SpechtModule",Reload => true)
+installPackage(SpechtModule)
 --loadPackage("SpechtPolynomials",Reload => true)
 
 generatePermutationGroup {{0,1,2}}
