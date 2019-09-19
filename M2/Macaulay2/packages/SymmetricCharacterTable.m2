@@ -58,52 +58,12 @@ doc ///
 
 doc ///
   
-  Key
-    CharacterTable
-    (symbol _,CharacterTable, Sequence)
-    (net,CharacterTable)
-  Headline
-    the class of character tables
-  Description
-    
-    Text
-        This type represents the character table of a symmetric group. Its implemented as a
-    	hash table which stores the list of partitions, the size of the table and a
-    	matrix which stores the values of the table.
   
-     Example
-    	charTable = characterTable 5
-	a = new Partition from {3,1,1};b = new Partition from {1,1,1,1,1}
-	peek charTable
-	charTable_(a,b)
- 
-  SeeAlso
-    	characterTable
  ///
  
  
  doc ///
-  Key
-    characterTable
-    (characterTable,ZZ)
-  Headline
-   returns the character table of $S_n$
-  Usage
-      characterTable n
-  Inputs
-      n:ZZ
-         the degree of the symmmetric group
-  Outputs
-      :CharacterTable
-         the character table with the irreducible characters of S_n indexed by partitions
-  Description
-    Text
-	This method construct the irreducible characters of $S_n$. The method works by recursively calculating the
-	character tables for the permutation modules of $S_n$. Then applying Gram-Schimdt algorithm to this
-	characters using the inner product of characters we obtain the irreducible characters of $S_n$ 
   
-  SeeAlso
-    	CharacterTable
  ///
  
     
