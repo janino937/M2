@@ -1,4 +1,4 @@
-laodload-- -*- coding: utf-8 -*-
+-- -*- coding: utf-8 -*-
 newPackage(
         "SpechtModule",
         Version => "1.5", 
@@ -87,7 +87,7 @@ export {"schurPolynomial"}
 export {"generalizedVandermondeMatrix"}
 export {"Robust","AsExpression","GenerateGroup"}
 export {"generatePermutationGroup"}
-export {"representationMultiplicity"}
+--export {"representationMultiplicity"}
 export {"secondaryInvariants"}
 protect \ {row,column}
 ---
@@ -198,10 +198,6 @@ CharacterTable_Sequence = (charTable,seq,e)-> (
     e
     )
 
-CharacterTable_Partition := (charTable, p)->charTable#matrix_{charTable#index#partition}
-
-CharacterTable^Partition := (charTable, p)->charTable#matrix^{charTable#index#partition}
-
 
 
 -- This method calculates the inner product of characters
@@ -221,10 +217,8 @@ CharacterTable^Partition := (charTable, p)->charTable#matrix^{charTable#index#pa
 innerProduct = method(TypicalValue => ZZ)
 innerProduct(ZZ,MutableMatrix,MutableMatrix) := (n,C,X) -> (
     prod:=0;
-    p:=partitions(n,n);
-    for i to numColumns(C)-1 do(
-        prod=prod+(C_(0,i))*(X_(0,i))*(cardinalityOfConjugacyClass(p#(i)));
-    ); 
+    p:=partitions(n);
+    prod = sum apply( numColumns(C),i -> C_(0,i)*(X_(0,i))*(cardinalityOfConjugacyClass(p#(i))));
     prod//(n)!
 )
 
@@ -346,29 +340,14 @@ youngTableau(Partition,MutableList):= (p,L)->(
     tableau
 )
 
-youngTableau(Partition,MutableMatrix):= (p,L)->(
-    if(numRows L != 1 ) then error "expected a matrix with one row";
-    if(sum toList p != # (flatten entries L )) then error "Partition and List size do not match";
-    tableau:= new YoungTableau;
-    tableau#partition =p;
-    tableau#values = new MutableList from flatten entries L;
-    tableau
-)
 
-youngTableau(Partition,Sequence):=(p,L)->(
-    if(sum toList p != #L) then error " Partition and List size do not match ";
-    tableau:= new YoungTableau;
-    tableau#partition =p;
-    tableau#values = new MutableList from toList L;
-    tableau
-)
 
 
 ------
 -- Gives a representation of the Young Tableau as a list of the rows in the
 -- diagram.
 ------
-tableauToList = method(TypicalValue => MutableList)
+tableauToList = method(TypicalValue => List)
 tableauToList(YoungTableau):= (tableau)->(
     
     n:= #(tableau#partition);
@@ -530,7 +509,7 @@ tableauList = method(TypicalValue => TableauList)
 tableauList Partition :=    p-> (
 lista := new TableauList;
 lista#partition = p;
-lista#matrix = mutableMatrix(ZZ,multinomial(sum(toList p),p),sum(toList p));
+lista#matrix = mutableMatrix(ZZ,multinomial(p),sum(toList p));
 lista#length = 0;
 lista
 )
@@ -554,7 +533,7 @@ lista
 
 toListOfTableaux = method()
 toListOfTableaux TableauList := tableaux -> (
-    apply(tableaux#length,i-> youngTableau(tableaux#partition,tableaux#matrix^{i}))
+    apply(tableaux#length,i-> youngTableau(tableaux#partition,flatten entries tableaux#matrix^{i}))
     )
 
 ------
@@ -1272,6 +1251,15 @@ rsortList List := l -> (
     (l,permutationSign(permutation))
     )
 
+sortList = method()
+sortList List := l -> (
+    sortedList := sort l;
+    index := hashTable apply (#sortedList,i-> sortedList#i => i);
+    permutation:= apply(l,a->index#a);
+    --error "test";
+    (l,permutationSign(permutation))
+    )
+
 
 --SpechtModuleTerm ? SpechtModuleTerm := (term1,term2)-> rowDescentOrder(term1#0,term2#0)
 
@@ -1475,27 +1463,31 @@ generalizedVandermondeMatrix(List,List,PolynomialRing):= (indices, exponents, R)
 schurPolynomial = method(Options => {AsExpression => false, Strategy=>"determinant"})
 schurPolynomial(List,List,PolynomialRing) := o->(indices, exponents, R) -> (
     ans:= 1_R;
+    sgn:= 1;
     if #indices != #exponents then error "size of indices and exponets does not match"; 
     if o.Strategy == "determinant" then
     ans = determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R)
     else if o.Strategy == "semistandard_tableaux" then (
-	(sortedList,sign) := rsortList exponents;
+        sortedList := sort exponents;
 	sortedList =  sortedList - toList (0..(#sortedList-1));
-        print sortedList;
-	print decreasing sortedList;
-	if not decreasing sortedList then ans = 0_R else (
+        --print sortedList;
+	--print increasing sortedList;
+	if not increasing sortedList then ans = 0_R else (
+	 l:= 0;
+	 (l,sgn)= sortList exponents;
+	 sortedList = reverse sortedList; 
 	 notZero := position(sortedList,i->i==0);
 	 if(notZero === null) then notZero = #sortedList-1 else notZero = notZero -1;
 	 if(notZero >= 0 ) then 
 	(
 	    partition:= new Partition from sortedList_{0..notZero};
-	    print partition;
+	    --print partition;
 	    semistandard := semistandardTableaux(partition, #indices );
 	    ans = sum(semistandard#length, i-> product(getRow(semistandard,i),j->R_(indices#j)));
 	    );
 	);
     );
-    ans
+    sgn*ans
     )
 
 increasing = method()
@@ -1579,98 +1571,480 @@ secondaryInvariants(List,PolynomialRing):= o->(gens,R)-> (
 	    )
 	)
     )
-
-
+ 
+   
 beginDocumentation()
 
-/// multidoc
+multidoc ///
+    Node
+    	Key
+	    SpechtModule
+	Headline
+    	    a package for constructing Specht Modules
+	Description
+	    Text
+	    	{\em SpechtModule} calculates many objects related to the irreducible representations of the symmetric functions.
+    		This construction is used to implement an algorithm in invariant theory which calculates efficiently the secondary
+    		invariants of any permutation group.
+		
+		The main features of the package include a method for calculating the character table of $S_n$, algorithms for
+    		calculating list of tableaux given a partition (tabloids, standard tableaux and semistandard tableaux among others)
+    		an implementation of the straightening algorithm which includes an implementation of the garnir element given a tableau
+    		an a row descent. Methods for calculating Higher Specht Polynomials which give a basis of
+    		the Specht Modules that arrise in the coinvariant ring of $S_n$ which is the quotient $k[x_1,..,x_n]/({\rm Sym}(n)^+)$. 
+    		And finally methods for calculating the secondary invariants described above.	    
+	Caveat	  
+	    An improvement can be made by finding an efficient way to calculate or represent Schur Polynomials
+ 
+    Node
+    	Key
+	    CharacterTable
+	    (symbol _,CharacterTable, Sequence)
+    	    (net, CharacterTable)
+	Headline
+    	    the class of character tables
+	Description
+	    Text
+	    	This type represents the character table of a symmetric group. It is implemented as a
+    		hash table that stores the list of partitions, the size of the table and a
+    		matrix which stores the values of the table.	    
+	    
+	    Example	
+		charTable = characterTable 5
+   		a = new Partition from {3,1,1}; b = new Partition from {1,1,1,1,1}
+		peek charTable
+		charTable_(a,b)
+ 	SeeAlso
+ 	    characterTable
 
-Node 
-    Key
-    	(tabloids, Partition)
-	tabloids
-    Headline
-    	the list of tabloids for a given partition
-    Usage
-    	tabloids(p)
-    Inputs
-    	p:Partition
-    Outputs
-    	:TableauList
-	the list of tabloids
-    Description
-    	
-	Text
-	   Tabloids are the equivalence class of tableaux under the row permutation equivalence relation.
-	   Two tabloids are row permutation equivalent if one can be obtained from the other by permuting elements in its rows.
-	   For every tabloid there is a unique representative such that its rows
-	   are increasing. This representatives are the ones calculated by the method
-	   tabloids().
-	   
-	   Tabloids are the basis of the permutation modules from which the Specht Modules are constructed.
+    Node
+    	Key
+	    characterTable
+    	    (characterTable,ZZ)
+	Headline
+    	    returns the character table of the symmetric group
+	Usage
+	    characterTable n
+	Inputs
+	    n:ZZ
+	    	the degree of the symmmetric group
+	Outputs
+	    :CharacterTable
+	    	the character table with the irreducible characters of $S_n$ indexed by partitions
+	Description
+	    Text
+	    	This method construct the irreducible characters of $S_n$. The method works by recursively calculating the
+		character tables for the permutation modules of $S_n$. Then applying Gram-Schimdt algorithm to this
+		characters using the inner product of characters we obtain the irreducible characters of $S_n$	    
+ 	SeeAlso
+ 	    CharacterTable
+    Node
+    	Key
+	    YoungTableau
+    	Headline
+    	    the class of Young Tableaux
+    	Description
+             Text
+    	    	This type represents a Young Tableau. It is implemented as a MutableHashTable. This hash table stores
+    		a partition that represents a shape of the tableau. The filling of the tableau is stored as a
+    		mutable list.
+    	    Example
+    	    	p = new Partition from {3,2}
+    		y = youngTableau(p,{1,0,2,3,4})
+    		peek y
+    Node
+    	Key
+    	    (youngTableau,Partition,List)
+    	    (youngTableau,Partition,MutableList)
+    	    youngTableau
+    	Headline
+    	    the constructor method for the class YoungTableau
+    	Usage
+    	    youngTableau(p,l)
+    	Inputs
+    	    p:Partition
+    	    	the shape of the tableau
+    	    l:List
+    	    	the filling of the tableau
+    	Outputs
+    	    :YoungTableau
+    	    	a young tableau with the given shape and filling
+    	SeeAlso
+	    YoungTableau
+    Node
+    	Key
+    	    (youngTableau,YoungTableau)
+    	Headline
+    	    creates a copy of a YoungTableau object
+    	Usage
+    	    youngTableau(y)
+    	Inputs
+    	    y:YoungTableau
+    	    	a Young tableau
+    	Outputs
+    	    :YoungTableau
+    	    	a copy of y
+    	Description
+	    Example
+	    	p = new Partition from {3,2}
+		l = {2,1,0,3,4}
+		y = youngTableau(p,l)
+		y1 = youngTableau y
+		y == y1  
+    		y === y1    	
 	
-	Example
-	    
-	    p = new Partition from {3,2}
-	    tabloids p
-	    
+    Node
+    	Key
+    	    (tableauToList,YoungTableau)
+    	    tableauToList
+    	Headline
+    	    converts a YoungTableau to list form
+    	Usage
+    	    tableauToList(y)
+    	Inputs
+    	    y:YoungTableau
+    	    	a Young tableau
+    	Outputs
+    	    :List
+    	    	a doubly nested list, the list of rows of the tableau
+    	Description
+	    Example
+	    	p = new Partition from {2,2,1}
+		l = {2,1,0,3,4}
+		y = youngTableau(p,l)
+		tableauToList y
 
-Node 
-    Key
-    	(standardTableaux, Partition)
-	standardTableaux
-    Headline
-    	the list of standard tableaux of shape p
-    Usage
-    	standardTableaux(p)
-    Inputs
-    	p:Partition
-    Outputs
-    	:TableauList
-	the list of standard tableaux
-    Description
+    Node
+    	Key
+    	    (listToTableau,List)
+    	    listToTableau
+    	Headline
+    	    constructs a Young Tableau from a doubly nested list of numbers
+    	Usage
+    	    listToTableau(l)
+    	Inputs
+    	    l:List
+    	    	a doubly nested list of numbers
+    	Outputs
+    	    :YoungTableau
+    	    	a Young Tableau, such that the rows corresponds to the elements of l
+    	Description
+	    Example
+	        l = {{0,1,2},{3,4},{5}}
+        	listToTableau l
+
+    Node
+    	Key
+    	    (symbol _,YoungTableau,Sequence)
+    	Headline
+    	    retrieves the entry in cell (a,b) from a Young Tableau
+    	Usage
+    	    y_(a,b)
+    	Inputs
+    	    y:YoungTableau
+
+    	    pos:Sequence
+    	    	the position (a,b) of the cell where a is the row and b the column	    
+    	Outputs
+    	    :ZZ
+    	    	the number in the cell at the position (a,b) of the tableau y
+    	Description
+	    Example
+	        y = youngTableau(new Partition from {2,2},{0,2,1,3})
+		y_(0,0)
+		y_(1,1)
+
+    Node
+    	Key
+    	    (symbol ^,YoungTableau,ZZ)
+    	Headline
+    	    retrieves a row from a Young Tableau
+    	Usage
+    	    y^n
+    	Inputs
+    	    y:YoungTableau
+
+    	    n:ZZ
+    	    	the number of the row
+    	Outputs
+    	    :List
+    	    	a list of the numbers that appear in row n of y
+    	Description
+	    Example
+	        y = youngTableau(new Partition from {3,2},{0,2,1,3,4})
+		y^0
+		y^1
+
+    Node
+    	Key
+    	    (symbol _,YoungTableau,ZZ)
+    	Headline
+    	    retrieves a column from a Young Tableau
+    	Usage
+    	    y_n
+    	Inputs
+    	    y:YoungTableau
+	    
+    	    n:ZZ
+    	    	the number of the row
+    	Outputs
+    	    :ZZ
+    	    	a list of the numbers that appear in row n of y
+  
+    	Description
+    	    Example
+    	    	y = youngTableau(new Partition from {3,2},{0,2,1,3,4})
+		y_0
+		y_1
+
+    Node
+    	Key
+	    (symbol ==,YoungTableau,YoungTableau)
+    	Headline
+    	    checks wheter two tableaux are equivalent	 
+        Usage
+    	    y1 == y2	
+        Inputs
+      	    y1:YoungTableau
+      	    
+	    y2:YoungTableau
+  	Outputs
+      	    :ZZ
+            	true if the shape and filling of tableaux y1 and y2 are the same
+  	Description
+   	    Example
+	    	y = youngTableau(new Partition from {3,2},{0,2,1,3,4})
+		y1 = youngTableau(new Partition from {3,2},{0,2,1,3,4})
+		y == y1
+		y2 =  youngTableau(new Partition from {2,2,1},{0,2,1,3,4})
+		y == y2
+
+    Node
+    	Key
+    	    (entries,YoungTableau)
+  	Headline
+	    returns the filling of the tableau
+  	Usage
+    	    entries y
+  	Inputs
+      	    y:YoungTableau
+  	Outputs
+      	    :List
+            	returns the filling of the tableau
+  	Description
+   	    Example
+	    	y = youngTableau(new Partition from {3,1,1},{2,0,1,4,3})
+		entries y
+
+    Node
+    	Key
+    	    (numcols,YoungTableau)
+  	Headline
+    	    returns the number of columns of a tableau
+  	Usage
+    	    numcols y
+  	Inputs
+      	    y:YoungTableau
+  	Outputs
+      	    :ZZ
+            	the number of columns of the tableau
+       	Description
+    	    Example
+	    	y = youngTableau(new Partition from {2,1,1,1},{2,0,1,4,3})
+		numcols y
+
+    Node
+    	Key
+    	    (numrows,YoungTableau)
+       	Headline
+    	    returns the number of rows of a tableau
+	Usage
+	    numrows y
+  	Inputs
+    	    y:YoungTableau
+	Outputs
+      	    :ZZ
+            	the number of rows of the tableau
+  	Description
+   	    Example
+	    	y = youngTableau(new Partition from {2,1,1,1},{2,0,1,4,3})
+		numrows y
+
+    Node
+    	Key
+    	    (size,YoungTableau)
+  	Headline
+    	    returns the number of cells of a tableau
+  	Usage
+    	    size y
+  	Inputs
+      	    y:YoungTableau
+  	Outputs
+      	    :ZZ
+            	the number of cells rows of the tableau
+       	Description
+   	    Text
+       	    	The size is calculated as the sum of the numbers in the partition associated to the tableau
+   	    Example
+	    	y = youngTableau(new Partition from {2,1,1,1},{2,0,1,4,3})
+		size y
+
+
+    Node
+    	Key
+    	    TableauList
+  	Headline
+    	    the class of list of tableaux
+  	Description
+    
+    	    Text
+            	This type represents a list of tableaux of the same size. They are represented as a MutableHashTable.
+		A matrix in this hash table stores the filling of every tableau in the list. This representation
+		is particularly usefull when only the filling of the tableau is needed.
+  	    Example
+    	    	p = new Partition from {2,1}
+    		y1 = youngTableau(p,{0,1,2})
+		y2 = youngTableau(p,{0,2,1})
+		y3 = youngTableau(p,{1,2,0})
+    		t = tableauList p
+		addTableau(t, y1)
+		addTableau(t, y2)
+		addTableau(t, y3)
+		peek t
+ 
+
+    Node
+    	Key
+    	    (tableauList,Partition,ZZ)
+    	    (tableauList,Partition)
+    	    tableauList
+  	Headline
+    	    the constructor for the type TableauList
+  	Usage
+    	    tableauList(p,n)
+    	    tableauList(p)
+  	Inputs
+    	    p:Partition
+    	    	the shape for the tableaux
+    	    n:ZZ
+    	    	the number of tableaux in the list, if is not provided then the default value
+	    	multinomial p is used. See multinomial.
+  	Outputs
+      	    :TableauList
+            	an empty TableauList with space for n tableaux
+  	Description
+        
+    	    Example
+    	    	p = new Partition from {2,1}
+    		y = youngTableau(p,{0,1,2})
+		t = tableauList p
+		addTableau(t,y)
+		peek t 
+		t1 = tableauList (p,5)
+		addTableau(t1,y)
+		peek t1
+
+    Node
+    	Key
+	    (toListOfTableaux,TableauList)
+	    toListOfTableaux
+	Headline
+	    converts an object of type TableauList into a list of YoungTableau objects
+	Usage
+    	    toListOfTableaux(tableaux)
+  	Inputs
+    	    tableaux:TableauList
+  	Outputs
+    	    :List
+    		a list of the tableaux stored in the TableauList  
+   	Description
+    	    Example
+        	p = new Partition from {2,1}
+    		y1 = youngTableau(p,{0,1,2})
+		y2 = youngTableau(p,{0,2,1})
+		y3 = youngTableau(p,{1,2,0})
+    		t = tableauList p
+		addTableau(t, y1)
+		addTableau(t, y2)
+		addTableau(t, y3)
+		toListOfTableaux t
+
+    Node 
+    	Key
+    	    (tabloids, Partition)
+	    tabloids
+    	Headline
+    	    the list of tabloids for a given partition
+    	Usage
+    	    tabloids(p)
+    	Inputs
+    	    p:Partition
+    	Outputs
+    	    :TableauList
+	    	the list of tabloids
+    	Description
     	
-	Text
-    	    The standard tableaux of a given partition $\lambda$ are tableaux of shape p.
-	    Such that they are both row and column increasing. This set of tableaux are
-	    very important because they are in bijection with the basis of the Specht module
-	    $S^\lambda$.
-	    
-	    The method calculates this tableaux recursively filling the cells of the Ferrer diagram
-	    and checking if the rows and columns are still increasing.	
-	Example
-	    
-	    p = new Partition from {3,2}
-	    standardTableaux p
-	    
-Node 
-    Key
-    	(semistandardTableaux, Partition, ZZ)
-	semistandardTableaux
-    Headline
-    	the list of semistandard tableaux of shape p and filling with the numbers from 0 to n-1.
-    Usage
-    	standardTableaux(p,n)
-    Inputs
-    	p:Partition
-	    the shape of the tableaux
-	n:ZZ
-	    a limit of the range of numbers that appear in the tableaux
-    Outputs
-    	:TableauList
-	the list of semistandard tableaux
-    Description
-    	
-	Text
-    	    The elements in semistandard 	
-	Example
-	    
-	    p = new Partition from {3,2}
-	    standardTableaux p
-	    
+	    Text
+	    	Tabloids are the equivalence class of tableaux under the row permutation equivalence relation.
+	   	Two tabloids are row permutation equivalent if one can be obtained from the other by permuting elements in its rows.
+	   	For every tabloid there is a unique representative such that its rows
+	   	are increasing. This representatives are the ones calculated by the method
+	   	tabloids().
+		
+		Tabloids are the basis of the permutation modules from which the Specht Modules are constructed.	
+	    Example	    
+	    	p = new Partition from {3,2}
+	    	tabloids p
+
+    Node 
+        Key
+    	    (standardTableaux, Partition)
+	    standardTableaux
+    	Headline	
+    	    the list of standard tableaux of shape p
+    	Usage
+    	    standardTableaux(p)
+    	Inputs
+    	    p:Partition
+    	Outputs
+    	    :TableauList
+	    	the list of standard tableaux
+    	Description    	
+	    Text
+    	    	The standard tableaux of a given partition $\lambda$ are tableaux of shape p.
+	    	Such that they are both row and column increasing. This set of tableaux are
+ 	    	very important because they are in bijection with the basis of the Specht module
+	    	$S^\lambda$.	    
+	    	
+		The method calculates this tableaux recursively filling the cells of the Ferrer diagram
+	    	and checking if the rows and columns are still increasing.	
+	    Example	    
+	    	p = new Partition from {3,2}
+	    	standardTableaux p
 
 
-///    
+    Node
+    	Key
+    	    (semistandardTableaux, Partition, ZZ)
+	    semistandardTableaux
+    	Headline
+    	    the list of semistandard tableaux of shape p and filling with the numbers from 0 to n-1.
+    	Usage
+    	    standardTableaux(p,n)
+    	Inputs
+    	    p:Partition
+    	    	the shape of the tableaux
+	    n:ZZ
+	    	a limit of the range of numbers that appear in the tableaux
+    	Outputs
+    	    :TableauList
+		the list of semistandard tableaux
+    	Description
+	    Text
+    	    	The elements in semistandard 	
+	    Example
+    		p = new Partition from {3,2}
+	    	standardTableaux p
+
+///
 end
-
-

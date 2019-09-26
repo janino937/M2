@@ -7,6 +7,52 @@ loadPackage("SpechtModule",Reload => true)
 installPackage(SpechtModule)
 --loadPackage("SpechtPolynomials",Reload => true)
 
+
+characterTable 5
+
+p = new Partition from {3,2}
+
+stand  = standardTableaux p 
+
+y= youngTableau(p,{2,3,4,1,0}) 
+
+sortColumnsTableau y
+
+garnirElement y
+
+straighteningAlgorithm y
+
+M = matrixRepresentation ({1,2,3,4,0},stand)
+
+R = QQ[x_1..x_3]
+
+G = {{0,2,1}}
+
+
+G = generatePermutationGroup G
+
+secondaryInvariants(G,R)
+
+higherSpechtPolynomials(R)
+
+
+
+
+oo#new Partition from {1,1,1,1,1}
+
+oo#{0,1,2,3,4}#{0,1,2,3,4}
+
+factor oo
+higherSpechtPolynomials()
+
+conjugacyClass {1,2,3,4,0}
+
+
+spechtPolynomials
+
+oo_(new Partition from {3,2},)
+
+y
 generatePermutationGroup {{0,1,2}}
 generatePermutationGroup {{0,2,1},{1,2,0}}
 G = generatePermutationGroup {{5,1,8,3,4,0,7,6,2,9},{4,0,1,2,3,7,8,9,5,6}};
@@ -17,7 +63,7 @@ schurPolynomial({0,1,2},{0,1,2},R, Strategy => "semistandard_tableaux")
 schurPolynomial({0,1,2},{0,2,2},R)
 schurPolynomial({0,1,2},{0,2,2},R, Strategy => "semistandard_tableaux")
 
-G = {{0,2,1}}
+
 G = {{0,1,2,3}}
 R = QQ[x_1..x_4]
 secondaryInvariants(G,R)
@@ -113,7 +159,7 @@ e = straighteningAlgorithm y2
 f = {4,0,1,2,3} e
 straighteningAlgorithm f
 
-M = matrixRepresentation ({1,2,3,4,0},stan)
+
 p2 = conjugacyClass {1,2,3,4,0}
 charac_(p,p2)
 
