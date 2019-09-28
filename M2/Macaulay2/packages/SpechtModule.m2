@@ -850,7 +850,7 @@ rowPermutationTableaux(YoungTableau) := (tableau)->(
     --scan (numbers, i-> print new HashTable from i);
     --print maxTableaux;
     tableaux :=tableauList(tableau#partition,maxTableaux);
-    newTableau:= youngTableau(tableau#partition,size:(-1));
+    newTableau:= youngTableau(tableau#partition,toList ( size:(-1) ) );
     --setIndex({0,0,0},newTableau);
     recursiveRowPermutationTableaux((#tableau#partition-1,0),numbers,newTableau,tableaux);
     toListOfTableaux tableaux
@@ -2041,10 +2041,251 @@ multidoc ///
 		the list of semistandard tableaux
     	Description
 	    Text
-    	    	The elements in semistandard 	
+    	    	The semistandard tableaux are tableaux that are strictly decreasign in rows and
+		weakly deacreasing in rows. 	
 	    Example
     		p = new Partition from {3,2}
+	    	semistandardTableaux (p,4)
+		
+    Node
+    	Key
+    	    (rowPermutationTableaux, YoungTableau)
+	    rowPermutationTableaux
+    	Headline
+    	    the list of row permutations without repetitions in columns
+    	Usage
+    	    rowPermutationTableaux(y)
+    	Inputs
+    	    y:YoungTableau
+    	    	a tableau, generally the index tableau of a standard tableau	
+
+    	Outputs
+    	    :List
+		the list of all row permutations of the tableau
+    	Description
+	    Text
+    	    	This list of tableaux is used to calculate more efficiently higher Specht polynomials.
+		If any of the columns has a repetition then the associated term in the higher Specht polynomial
+		for this row permutation is zero. This is why such permutations are ommited. 	
+
+	    Example
+		p = new Partition from {3,2}
+	    	y = youngTableau(p, {0,2,1,3,4})
+		ind = indexTableau y
+		rowPermutationTableaux ind
+
+    Node
+    	Key
+    	    (hookLengthFormula, Partition)
+	    hookLengthFormula
+    	Headline
+    	    a formula for the number of standard tableaux
+    	Usage
+    	    hookLengthFormula(p)
+    	Inputs
+    	    p:Partition
+    	    	a partition that indexes a Specht Module	
+
+    	Outputs
+    	    :ZZ
+		the dimension of the Specht module S_\lambda
+    	Description
+	    Text
+    	    	The hook length formula is a method that counts the number of
+		standard tableaux of a given shape p. Therefore it counts the
+		dimension of the associated Specht module.
+		
+	        For each Ferrer diagram and each cell (a,b) the hook at (a,b) is
+		the set of cells that comprise (a,b) the cells that are below (a,b),
+		and the cells that are to right of (a,b). The hook length of a hook h(a,b) is
+		defined of the number of cells in the hook.
+		
+		If p is a partition of n then the hook length formula for p is
+		$ n!/\prod_{(a,b)} h(a,b) $ 	
+
+	    Example
+		p = new Partition from {3,2}
 	    	standardTableaux p
+		hookLengthFormula p
+
+    Node
+    	Key
+    	    (cycleDecomposition, List)
+	    cycleDecomposition
+    	Headline
+    	    the cycle decomposition of a permutation
+    	Usage
+    	    cycleDecomposition perm
+    	Inputs
+    	    perm:List
+    	    	a permutation of the list of numbers from 0 to n-1	
+
+    	Outputs
+    	    :List
+		a doubly nested list with cycles of the permutation
+    	Description
+	    Text
+    	    	Every permutation has a decomposition as the concatenation of disjoint cycles.
+		This decomposition is used to calculate the conjugacy class of the permutation.
+		
+	    Example
+		cycleDecomposition {0,1,2,3,4}		
+		cycleDecomposition {1,3,2,0,4} 
+		
+    Node
+    	Key
+    	    (conjugacyClass, List)
+	    conjugacyClass
+    	Headline
+    	    the conjugacy class of a permutation
+    	Usage
+    	    conjugacyClass perm
+    	Inputs
+    	    perm:List
+    	    	a permutation of the list of numbers from 0 to n-1	
+
+    	Outputs
+    	    :Partition
+		a partition that represents the conjugacy class of the permutation
+    	Description
+	    Text
+    	    	The method first calculates the cycle decomposition of the permutation
+		Then the conjugacy class is the partition given by the lengths of the
+		cycles in the decomposition
+		
+	    Example
+		cycleDecomposition {0,1,2,3,4}
+		conjugacyClass 	{0,1,2,3,4}	
+		cycleDecomposition {1,3,2,0,4} 
+    	    	conjugacyClass 	{0,1,2,3,4}
+
+    Node
+    	Key
+    	    multinomial
+	    (multinomial, Tally)
+	    (multinomial, List)
+	    (multinomial, Partition)
+    	Headline
+    	    a formula for the multinomial coefficient
+    	Usage
+    	    multinomial(tal)
+	    multinomial(l)
+	    multinomial(p)
+    	Inputs
+    	    p:Partition
+    	    	a partition	
+    	    l:List
+	    	a list of non negative numbers
+	    tal:Tally
+    	    	a tally from a list
+		
+    	Outputs
+    	    :ZZ
+		the multinomial coefficient of the given list
+    	Description
+	    Text
+    	    	The multinomial coefficient is a generalization of the binomial coefficient.
+		Given a list of number $k_1,\ldots,k_l$, the multinomial coefficient is
+		$n!/(k_1!\ldots,k_l!)$ where $n = \sum k_i$. The multinomial coefficient is calculated
+		because it gives the numbers of tabloids for a given partition.
+		
+		The list of numbers used to calculate the multinomial can be given
+		as a list, a partition or a tally. This last option was added to optimize
+		this calculation.
+
+	    Example
+		p = new Partition from {2,2}
+	    	tabloids p
+		multinomial {2,2}
+		multinomial tally {2,2}
+
+
+    Node
+    	Key
+    	    (rowStabilizer,YoungTableau )
+	    rowStabilizer
+    	Headline
+    	    the row stabilizer of the tableau
+    	Usage
+    	    rowStabilizer(y)
+    	Inputs
+    	    y:YoungTableau
+    	Outputs
+    	    :List
+		a dubly nested list with the permutations in the row stabilizer
+    	Description
+	    Text
+    	    	The row stabilizer of a tableau is the group of the permutations that fixes the rows of
+		the tableau. In terms of tabloids it is the stabilizer of a tabloid under the action of the
+		group of permutations S_n. This group is used in the calculation of polytabloids and Specht polynomials.
+		
+
+	    Example
+		p = new Partition from {2,2,1}
+	    	y = youngTableau(p,{0,3,1,4,2})
+		rowStabilizer y
+
+    Node
+    	Key
+    	    (columnStabilizer,YoungTableau )
+	    columnStabilizer
+    	Headline
+    	    the column stabilizer of the tableau
+    	Usage
+    	    columnStabilizer(y)
+    	Inputs
+    	    y:YoungTableau
+    	Outputs
+    	    :List
+		a doubly nested list with the permutations in the column stabilizer
+    	Description
+	    
+	    Example
+		p = new Partition from {2,2,1}
+	    	y = youngTableau(p,{0,3,1,4,2})
+		columnStabilizer y
+    	SeeAlso
+	    rowStabilizer
+
+    Node
+    	Key
+    	    permutationSign
+	    (permutationSign,List )
+	    (permutationSign,Partition)
+    	Headline
+    	    the sign of a permutation
+    	Usage
+    	    permutationSign(perm)
+    	Inputs
+    	    perm:List
+	    	a permutation of the numbers from 0 to n-1
+	    p:Partition
+	    	a partition that represents the conjugacy class of the permutation 
+    	Outputs
+    	    :ZZ
+		1 or -1, the sign of the permutation
+    	Description
+	    Text
+	    	Every permutation can be decompose as a product of transpositions.
+		This decomposition is not unique, however the parity of the number
+		of transpositions that appears in the decomposition is always the same.
+		Thus the sign is defined as $(-1)^l$ where $l$ is the number of transposition.
+	    	
+		The sign can be calculated if the cycle decomposition if known because
+		the sign is multiplicative and the sign of a $k$-cycle is $(-1)^(k+1)$.
+		This is the way the method permutationSign calculates the sign.
+		
+		The sign permutation is used to calculate polytabloids and higher Specht polynomials.
+		
+	    Example
+		perm = {2,1,4,3,0}
+		c = cycleDecomposition perm
+		permutationSign perm
+		perm2 = {4,2,1,0,3}
+    	    	c2 = cycleDecomposition perm2
+		permutationSign perm2
+    	    	
 
 ///
 end
+    
