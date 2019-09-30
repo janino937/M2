@@ -1065,7 +1065,7 @@ combinations(ZZ,ZZ):= (n,m)->(
 SpechtModuleElement = new Type of HashTable 
 
 spechtModuleElement = method()
-spechtModuleElement (YoungTableau, ZZ) := (tableau,coef)-> (
+spechtModuleElement (YoungTableau, QQ) := (tableau,coef)-> (
     new SpechtModuleElement from hashTable {partition => tableau#partition, 
 	values => new MutableHashTable from hashTable {toList tableau#values => coef}} 
 )
@@ -2285,6 +2285,67 @@ multidoc ///
     	    	c2 = cycleDecomposition perm2
 		permutationSign perm2
     	    	
+    Node
+    	Key
+	    SpechtModuleElement
+	    (symbol *,QQ, SpechtModuleElement)
+	    (symbol *,ZZ, SpechtModuleElement)
+	    (trim,SpechtModuleElement)
+	    (symbol +,SpechtModuleElement, SpechtModuleElement)
+	    (symbol -,SpechtModuleElement, SpechtModuleElement)
+	    (terms,SpechtModuleElement)
+	    (symbol SPACE,List, SpechtModuleElement)
+    	    (net, SpechtModuleElement)
+	Headline
+    	    the class of Specht Module elements
+	Description
+	    Text    	
+		Polytabloids of shape $p$ are elements of the module of tabloids of the form 
+		$\sum_{\tau \in C(T)}\sum_{\sigma \in R(T)}sgn(\tau) \tau\sigma(T)$
+		where T is a tabloid of shape $p$.
+		
+		The set of polytabloids generates the Specht Module of shape $p$.
+		
+		In other words the element in a SpechtModule are linear combinations of
+		polytabloids. This is the way such elements are implemented in this package.
+	    
+	    Example	
+		charTable = characterTable 5
+   		a = new Partition from {3,1,1}; b = new Partition from {1,1,1,1,1}
+		peek charTable
+		charTable_(a,b)
+ 	SeeAlso
+ 	    spechtModuleElement
+
+    Node
+    	Key
+    	    (spechtModuleElement,YoungTableau,QQ )
+	    (spechtModuleElement,YoungTableau)
+	    spechtModuleElement
+    	Headline
+    	    the constructor for the class SpechtModuleElement
+    	Usage
+    	    spechtModuleElement(y,n)
+	    spechtModueElement(y)
+    	Inputs
+    	    y:YoungTableau
+	    	the label of the polytabloid
+	    n:QQ
+	    	a number. If not specified then it is assumed to be a 1.
+    	Outputs
+    	    :SpechtModuleElement
+		an element of the form n*poly_y, where poly_y is the polytabloid labeled by the tableau y.
+    	Description
+	    Text	
+		The basic constructor builds a SpechtModuleElement from just one polytabloid and
+		its respective coefficient.
+	    Example
+		p = new Partition from {3,2,1}
+		y = youngTableau(p,{2,0,3,4,5,1})
+		spechtModuleElement(y,-2)
+		spechtModuleElement(y)
+	        
+
 
 ///
 end
