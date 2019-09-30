@@ -1070,6 +1070,11 @@ spechtModuleElement (YoungTableau, QQ) := (tableau,coef)-> (
 	values => new MutableHashTable from hashTable {toList tableau#values => coef}} 
 )
 
+spechtModuleElement (YoungTableau, ZZ) := (tableau,coef)-> (
+    new SpechtModuleElement from hashTable {partition => tableau#partition, 
+	values => new MutableHashTable from hashTable {toList tableau#values => coef}} 
+)
+
 spechtModuleElement YoungTableau := tableau -> spechtModuleElement(tableau,1)
 
 spechtModuleElement (Partition, MutableHashTable):= (p,v) ->(
@@ -2309,32 +2314,67 @@ multidoc ///
 		In other words the element in a SpechtModule are linear combinations of
 		polytabloids. This is the way such elements are implemented in this package.
 	    
-	    Example	
-		charTable = characterTable 5
-   		a = new Partition from {3,1,1}; b = new Partition from {1,1,1,1,1}
-		peek charTable
-		charTable_(a,b)
+	    	The constructor takes just one polytabloid and a coefficient
+	    Example
+	    	p = new Partition from {3,2,1}
+		y = youngTableau(p,{2,0,3,4,5,1})
+		e = spechtModuleElement(y,-2)
+	    Text
+	    	More complex elements can be made by adding or substracting previously build elements
+		and multiplying by any element of the base field (which is assumed to be \mathbb{Q}).
+	    Example
+	    	y2 = youngTableau(p,{5,0,2,4,1,3})
+		e2 = spechtModuleElement(y2)
+		e+e2
+		e-e2
+		3*oo
+	    Text
+	    	The element SpechtModuleElement is implemented as a MutableHashTable.
+		The keys are the filling of the tableaux that label the polytabloids and they
+		point to their respective coefficients
+	    Example
+	    	peek oo
+	        peek ooo#values 
+	    Text
+	    	The method terms is used to retrieve the polytabloid with their respective coefficient.
+		This is given as a list of pairs of tableaux and coefficients.
+	    Example
+	    	terms (3*(e-e2))
+	    Text
+	    	A method was implemented to apply a permutation to a SpechtModuleElement.
+		The action is defined by permuting the entries of the tableaux that label the 
+		polytabloids.
+	    Example
+	    	{0,1,2,3,4,5} (3*(e-e2))
+		{1,0,2,3,4,5} (3*(e-e2))
  	SeeAlso
  	    spechtModuleElement
 
     Node
     	Key
-    	    (spechtModuleElement,YoungTableau,QQ )
-	    (spechtModuleElement,YoungTableau)
-	    spechtModuleElement
+    	    garnirElement
+	    (garnirElement,YoungTableau, ZZ,ZZ,ZZ )
+	    (garnirElement,YoungTableau,ZZ )
+	    (garnirElement,YoungTableau)
+	    
     	Headline
-    	    the constructor for the class SpechtModuleElement
+    	    a SpechtModuleElement that is equal to zero
     	Usage
-    	    spechtModuleElement(y,n)
-	    spechtModueElement(y)
+    	    garnirElement(y,coef,a,b)
+	    garnirElement(y,coef)
+	    garnirElement(y)
     	Inputs
     	    y:YoungTableau
-	    	the label of the polytabloid
-	    n:QQ
-	    	a number. If not specified then it is assumed to be a 1.
+	    	a tableau that labels a polytabloid
+	    a:ZZ
+	    	the row of the descent
+	    b:QQ
+	    	the column of the descent
+	    coef:ZZ
+	    	the coefficient of the polytabloid
     	Outputs
     	    :SpechtModuleElement
-		an element of the form n*poly_y, where poly_y is the polytabloid labeled by the tableau y.
+		an element which is equal to zero.
     	Description
 	    Text	
 		The basic constructor builds a SpechtModuleElement from just one polytabloid and
@@ -2345,6 +2385,37 @@ multidoc ///
 		spechtModuleElement(y,-2)
 		spechtModuleElement(y)
 	        
+    Node
+    	Key
+    	    spechtModuleElement
+	    (spechtModuleElement,YoungTableau,QQ )
+	    (spechtModuleElement,YoungTableau,ZZ )
+	    (spechtModuleElement,YoungTableau)
+	    
+    	Headline
+    	    the constructor for the class SpechtModuleElement
+    	Usage
+    	    spechtModuleElement(y,n)
+	    spechtModueElement(y)
+    	Inputs
+    	    y:YoungTableau
+	    	the label of the polytabloid
+	    n:ZZ
+	    	a number. If not specified then it is assumed to be a 1.
+	    m:QQ
+	    	a number. If not specified then it is assumed to be a 1.
+    	Outputs
+    	    :SpechtModuleElement
+		an element of the form n*poly_y, where poly_y is the polytabloid labeled by the tableau y.
+    	Description
+	    Text	
+		A Garnir element is an element which is constructed to remove row descents from a tableau.
+		In this element the original tableau appears along side other tableaux which are
+		closer to being standard. This method is used to implement the straigtening algorithm.
+	    Example
+		p = new Partition from {3,2,1}
+		y = youngTableau(p,{1,2,3,5,4,6})
+		garnirElement y
 
 
 ///
