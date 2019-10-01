@@ -1,4 +1,59 @@
-
+Node
+    	Key
+	    (readingWord,YoungTableau)
+	    readingWord
+	Headline
+	    gives the reading word of a given tableau
+	Usage
+	    readingWord(y)
+	Inputs
+	    y:YoungTableau
+	    	a young tableau
+	Outputs:
+	    :List
+	    the reading word of the Young tableau
+	Description
+	    Text
+	    	The reading word of a tableau is word obtain by reading each column from the bottom up and reading 
+		the columns from left to right. The reading word is used to calculate the cocharge statistic of the given tableau.
+		
+	    Example
+	    	p = new partition from {3,2}
+	    	y = youngTableau(p,{0,2,3,1,4})
+	    	readingWord(y)
+	    
+    Node
+    	Key
+	    (indexTableau,YoungTableau)
+	    indexTableau
+	Headline
+	    the index tableau for a given tableau
+	Usage
+	    indexTableau(y)
+	Inputs
+	    y:YoungTableau
+	Outputs+
+	    :YoungTableau
+	    	the index tableau
+    	Description
+	    Text
+	    	The index tableau is a filling obtained by the original tableau using the reading word.
+		To every element in the reading word a number is given recursively in the following way.
+		f(0) = 0 and f(k+1) = f(k) if k+1 appear to the right of k. Otherwise f(k+1)= f(k)+1.
+		
+		Finally the entries in the original tableau are replaced by the values of the function f.
+	    
+	    Example
+	    	p = new partition from {3,2}
+	    	y = youngTableau(p,{0,2,3,1,4})
+	    	readingWord(y)
+		indexTableau(y)
+		  
+    Node
+    	Key
+	    (rowPermutationTableaux,YoungTableau)
+	Headline
+	    the set of row permutation tableaux such that no column has two entries of the same value
 
 
 path = append(path,"~/M2/M2/Macaulay2/packages")
@@ -6,7 +61,6 @@ break
 exit
 restart
 loadPackage("SpechtModule",Reload => true)
-installPackage(SpechtModule)
 --loadPackage("SpechtPolynomials",Reload => true)
 
 
