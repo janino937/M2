@@ -1145,7 +1145,7 @@ net SpechtModuleElement := A -> (
     netElement
     )
 
-straighteningAlgorithm = method(TypicalValue=> List)
+straighteningAlgorithm = method(TypicalValue=> SpechtModuleElement)
 straighteningAlgorithm(SpechtModuleElement) := (element)->(
     sortColumnsTableau(element); 
     notStandard := select(1, terms element, t-> firstRowDescent(t#0) > (-1,-1));
@@ -1225,15 +1225,13 @@ sortColumnsTableau SpechtModuleElement := element ->
 (
     scan (keys element#values, t -> (
 	    y := youngTableau(element#partition,t);
-	    --print net y;
+	    coef := element#values#t;
+	    remove(element#values,t);
 	    sign:= sortColumnsTableau(y);
-	    if(t != toList y#values) then (
-		coef := sign*element#values#t;
-		remove(element#values,t);
-		element#values#(entries y) = coef;
-		);
-	    )
-	)
+	    if(element#values#?(entries y)) then element#values#(entries y) = element#values#(entries y)+sign*coef
+	    else element#values#(entries y) = coef*sign;
+	     )   
+	);
     )
 
 sortColumn = method()
@@ -2072,7 +2070,7 @@ multidoc ///
 		the columns from left to right. The reading word is used to calculate the cocharge statistic of the given tableau.
 		
 	    Example
-	    	p = new partition from {3,2}
+	    	p = new Partition from {3,2}
 	    	y = youngTableau(p,{0,2,3,1,4})
 	    	readingWord(y)
 
@@ -2099,7 +2097,7 @@ multidoc ///
 		Finally the entries in the original tableau are replaced by the values of the function f.
 	    
 	    Example
-	    	p = new partition from {3,2}
+	    	p = new Partition from {3,2}
 	    	y = youngTableau(p,{0,2,3,1,4})
 	    	readingWord(y)
 		indexTableau(y)
@@ -2402,6 +2400,39 @@ multidoc ///
  	SeeAlso
  	    spechtModuleElement
 
+	        
+    Node
+    	Key
+    	    spechtModuleElement
+	    (spechtModuleElement,YoungTableau,QQ )
+	    (spechtModuleElement,YoungTableau,ZZ )
+	    (spechtModuleElement,YoungTableau)
+	    
+    	Headline
+    	    the constructor for the class SpechtModuleElement
+    	Usage
+    	    spechtModuleElement(y,n)
+	    spechtModueElement(y)
+    	Inputs
+    	    y:YoungTableau
+	    	the label of the polytabloid
+	    n:ZZ
+	    	a number. If not specified then it is assumed to be a 1.
+	    m:QQ
+	    	a number. If not specified then it is assumed to be a 1.
+    	Outputs
+    	    :SpechtModuleElement
+		an element of the form n*poly_y, where poly_y is the polytabloid labeled by the tableau y.
+    	Description
+	    Text	
+		The basic constructor builds a SpechtModuleElement from just one polytabloid and
+		its respective coefficient.
+	    Example
+		p = new Partition from {3,2,1}
+		y = youngTableau(p,{2,0,3,4,5,1})
+		spechtModuleElement(y,-2)
+		spechtModuleElement(y)
+
     Node
     	Key
     	    garnirElement
@@ -2429,46 +2460,541 @@ multidoc ///
 		an element which is equal to zero.
     	Description
 	    Text	
-		The basic constructor builds a SpechtModuleElement from just one polytabloid and
-		its respective coefficient.
-	    Example
-		p = new Partition from {3,2,1}
-		y = youngTableau(p,{2,0,3,4,5,1})
-		spechtModuleElement(y,-2)
-		spechtModuleElement(y)
-	        
-    Node
-    	Key
-    	    spechtModuleElement
-	    (spechtModuleElement,YoungTableau,QQ )
-	    (spechtModuleElement,YoungTableau,ZZ )
-	    (spechtModuleElement,YoungTableau)
-	    
-    	Headline
-    	    the constructor for the class SpechtModuleElement
-    	Usage
-    	    spechtModuleElement(y,n)
-	    spechtModueElement(y)
-    	Inputs
-    	    y:YoungTableau
-	    	the label of the polytabloid
-	    n:ZZ
-	    	a number. If not specified then it is assumed to be a 1.
-	    m:QQ
-	    	a number. If not specified then it is assumed to be a 1.
-    	Outputs
-    	    :SpechtModuleElement
-		an element of the form n*poly_y, where poly_y is the polytabloid labeled by the tableau y.
-    	Description
-	    Text	
 		A Garnir element is an element which is constructed to remove row descents from a tableau.
-		In this element the original tableau appears along side other tableaux which are
-		closer to being standard. This method is used to implement the straigtening algorithm.
+		Given a tableau $T$, the Garnir element is defined for a subset $A$ of the $i$th column and a subset $B$ of the $i+1$ column.
+		It is defined as $ \sum_{\pi} sgn(\pi)\pi(T)$. The  $\pi$ are called transversals. They are a set of permutations such that
+		$S_{A \cup B}$  is the disjoint union of  $\pi(S_A \times S_B)$. 
+		  
+		The identity can always be chosen as a transversal for any pair of sets. Therefore the original tableau $T$ appears along side other tableaux which are
+		closer to being standard. Another property is that this element is equal to zero. Therefore the original polytabloid $e_T$ can be written as
+		$ e_T = -\sum_{\pi \neq id} sgn(\pi)\pi(e_T)  $ 
+	    
+	    	In this implementation the $i$th column is taken to be the parameter b. The set $A$ is all the cells in the $i$th column from the a-th row to the bottom.
+		The set $B$ is all the cells in the $i+1$ column from the a-th row to the top.
+		
+		If the number (a,b) are not specified then they are taken as the coordinates of the first row descent of $T$
 	    Example
 		p = new Partition from {3,2,1}
 		y = youngTableau(p,{1,2,3,5,4,6})
 		garnirElement y
+    	SeeAlso
+    	    firstRowDescent
 
+    Node
+    	Key
+    	    straighteningAlgorithm
+	    (straighteningAlgorithm, SpechtModuleElement )
+	    (straighteningAlgorithm,YoungTableau,ZZ )
+	    (straighteningAlgorithm,YoungTableau)
+	    
+    	Headline
+    	    an algorithm for expressing any polytabloid as linear combinations of standard polytabloids
+    	Usage
+    	    straighteningAlgorithm(ele)
+	    straighteningAlgorithm(y,coef)
+	    straighteningAlgorithm(y)
+    	Inputs
+	    ele:SpechtModuleElement
+	    	a SpecthModuleElement
+    	    y:YoungTableau
+	    	a tableau that labels a polytabloid
+	    coef:ZZ
+	    	the coefficient of the polytabloid
+    	Outputs
+    	    :SpechtModuleElement
+		the same SpechtModuleElement written as a linear combination of standard polytabloids 
+    	Description
+	    Text	
+		The straigtening algorithm works by finding the first term that is not standard. Then, taking as coordinates
+		the first row descent, it calculates the Garnir element of this tableaux. It then rewrites
+		the SpechtModuleElement substituting the term by the linear combination given by the garnir element.
+	    Example
+		p = new Partition from {3,2,1}
+		y = youngTableau(p,{1,2,3,5,4,6})
+		garnirElement y
+    	SeeAlso
+	    garnirElement
+
+
+    Node
+    	Key
+	    (sortColumnsTableau, YoungTableau)
+	    
+    	Headline
+    	    a method for 
+    	Usage
+    	    sortColumnsTableau(y)
+    	Inputs
+    	    y:YoungTableau
+    	Outputs
+    	    :ZZ
+		the sign of the permutation that sorts the columns of the tableau
+    	Description
+	    Text	
+    	    	This method sorts the columns of the tableau and retrieves the sign of the associated permutation
+	    Example
+		p = new Partition from {2,2,1}
+		y = youngTableau(p,{0,1,4,3,2})
+		sortColumnsTableau y
+		y
+
+    Node
+    	Key
+	    (sortColumnsTableau, SpechtModuleElement)
+    	    sortColumnsTableau
+	    
+    	Headline
+    	    a method for sorting the columns of the tableaux in a SpechtModuleElement 
+    	Usage
+    	    sortColumnsTableau(ele)
+    	Inputs
+    	    ele:SpechtModuleElement
+    	Outputs
+    	    :null
+    	Description
+	    Text	
+    	    	This method sorts the columns of every tableaux that appears as a term of the SpechtModuleElement.
+		The corresponding sign of the sort is multiplied to the coefficient of the respective term.
+		The method returns null but changes the SpechtModuleElement that was input as a parameter.
+	    Example
+		p = new Partition from {2,2,1}
+		y1 = youngTableau(p,{0,1,4,3,2})
+		y2 = youngTableau(p,{0,3,4,1,2})
+		ele = spechtModuleElement(y1)-spechtModuleElement(y2)
+		sortColumnsTableau ele
+		ele
+		
+		
+		
+    Node
+    	Key
+	    (firstRowDescent, YoungTableau)
+    	    firstRowDescent
+	    
+    	Headline
+    	    retrieves the first row descent of a young tableau
+    	Usage
+    	    firstRowDescent y
+    	Inputs
+    	    y:YoungTableau
+    	Outputs
+    	    a:ZZ
+	    	the row of the row descent or -1 if there is no row descent
+	    b:ZZ
+	    	the column of the row descent or -1 if there is no row descent
+	    
+    	Description
+	    Text	
+    	    	A row descent is defined to be a cell (a,b) in a tableau $T$ such that T_(a,b)>T_(a,b+1).
+		This method reads by columns from left to rigth and each column is read from the top down until the first row descent is found.
+		If no row descent is found the pair (a,b)= (-1,-1) is returned.
+	    Example
+		p = new Partition from {3,2,1}
+		y = youngTableau(p,{1,2,3,5,4,6})
+		firstRowDescent y
+		y2 = youngTableau(p,{1,2,4,3,5,6})
+		firstRowDescent y2
+
+    Node
+    	Key
+	    (cardinalityOfConjugacyClass, Partition)
+    	    cardinalityOfConjugacyClass
+	    
+    	Headline
+    	    the size of the conjugacy classes of S_n
+    	Usage
+    	    cardinalityOfConjugacyClass p
+    	Inputs
+    	    p:Partition
+	    	a partition that indexes a conjugacy class of S_n
+    	Outputs
+    	   :ZZ
+	       the size of the conjugacy class  
+    	Description
+	    Text	
+    	    	The formula for this classes is obtained by the Orbit-Stabilizer lemma applied for S_n
+		with the action of conjugation.
+		
+		For a partition $p$ this formula is $n!/(\prod_i (\lambda_i )!i^\lambda_i$, where $\lambda_i$ denotes the number
+		    of parts in $p$ that are equal to $i$.  
+	    Example
+		p1 = new Partition from {3,2,1}
+		cardinalityOfConjugacyClass p1
+		p2 = new Partition from {1,1,1,1,1}
+		cardinalityOfConjugacyClass p2
+		
+		
+    Node
+    	Key
+	    matrixRepresentation
+	    (matrixRepresentation, List, TableauList)
+    	    (matrixRepresentation, List, Partition)
+	    (matrixRepresentation,TableauList)
+	    (matrixRepresentation,Partition)
+	    
+    	Headline
+    	    the matrix representation of a permutation in the Specht Module
+    	Usage
+    	    matrixRepresentation(perm,standard)
+	    matrixRepresentation(perm,parti)
+	    matrixRepresentation(standard)
+	    matrixRepresentation(parti)
+	    
+    	Inputs
+    	    perm:List
+	    	a permutation
+	    standard:TableauList
+	    	a list of standard tableaux of a given partition
+	    parti:Partition
+	    	a partition
+	    
+    	Outputs
+    	   :Matrix
+	       the matrix representation of the given permutation in the Specht module index by the given partition
+	   :HashTable
+	       if no permutation is given then it calculates the representation for all the permutations in S_n
+    	Description
+	    Text	
+    	    	The matrix representation for a permutation is calculated by studying the action of the permutation
+		on the basis of standard polytabloids.
+		
+		The permuted polytabloids are then written as a linear combination of standard polytabloids using the
+		straightening algorithm.
+	    Example
+		p = new Partition from {2,1}
+		l = {0,2,1}
+		matrixRepresentation (l,p)
+		stan = standardTableaux p
+		matrixRepresentation (l,stan)
+    	    	matrixRepresentation stan
+		
+		
+    Node
+    	Key
+	    permutePolynomial
+	    (permutePolynomial, List, RingElement)
+    	    (permutePolynomial, List, Product)
+	    (permutePolynomial, List, Sum)
+	    (permutePolynomial, List, Power)
+    	Headline
+    	    permutes a RingElement or a PolynomialExpression of RingElements
+    	Usage
+    	    permutePolynomial(perm,f)
+	    permutePolynomial(perm,prod)
+	    permutePolynomial(perm,s)
+	    permutePolynomial(perm,pow)
+	    
+    	Inputs
+	    
+    	    f:RingElement
+	    	a ring element
+	    prod:Product
+	    	a Product expression
+	    s:Sum
+	    	a sum expression
+	    pow:Power
+	    	a power expression
+	    perm:
+	    	a permutation
+    	Outputs
+    	   :RingElement
+	       the result of applying perm to f  
+	   :Expression
+	       the result of applying f to the given expression
+    	Description
+	    Text
+	    	This method applies permutations to polynomial ring elements by permuting the variables.  
+	    	Therefore the size of the permutation must be equal to the number of generators of the ring of the elements.
+	    Example
+		R = QQ[x_0..x_4]
+		l = {1,0,2,3,4}
+		f = x_1*x_2*x_3
+		permutePolynomial(l,f)
+	    Text
+	    	This method can also permute polynomial expressions that are constructed from ring elements
+		either by sums, products or powers.
+	    Example
+	    	ex = factor(x_1*x_2*x_3)+factor(x_1*x_3*x_4)
+    	    	permutePolynomial(l,ex)		
+
+    				
+    Node
+    	Key
+	    vandermondeDeterminant
+	    (vandermondeDeterminant, List,PolynomialRing)
+    	    
+    	Headline
+    	   the vandermonde determinant for a set of generators of a ring
+    	Usage
+    	    vandermondeDeterminant(l,R)
+    	
+	Inputs
+	    R:PolynomialRing
+	    
+    	    l:List
+	    	a subset of the indices of the generators of R
+    	    AsExpression=>Boolean
+	    	a Boolean value, default value is false. If true it returns the determinant as a product expression
+		This is a particularly useful way to reduce the size of the object since a Vandermonde determinant
+		has n! terms but only n*(n-1)/2 factors.
+	Outputs
+    	   :RingElement
+	       the determinant of the Vandermonde matrix formed by the generators indexed by l. 
+    	Description
+	    Text	
+    	    	A Vandermonde matrix is a matrix of $n$ elements its constructed by putting in each column
+		all the powers from 0 to $n-1$ of each of the elements.
+		
+		If x_i are the elements used to construct the matrix then it can be proven that the determinant
+		has the following form.
+		
+		$\prod_{0 \leq i < j < n} (x_j-x_i) $
+		  
+	    Example
+		R = QQ[x_0..x_3]
+		vandermondeDeterminant({0,2,3},R)
+    	    	factor oo
+		
+	        
+    Node
+    	Key
+	    (spechtPolynomial,YoungTableau, PolynomialRing)
+    	    spechtPolynomial
+    	Headline
+    	   the Specht polynomial indexed by a standard tableau 
+    	Usage
+    	    spechtPolynomial(y,R)
+    	
+	Inputs
+	    y:YoungTableau
+	    	
+	    R:PolynomialRing
+	    	
+	Outputs
+    	   :RingElement
+	     the Specht polynomial  
+    	Description
+	    Text	
+    	    	Specht polynomials were the original objects that gave rise to the Specht modules.
+		The Specht polynomial of a tableau $T$ is product of the Vandermonde determinant of the variables
+		index by the columns of the tableau.
+		  
+	    Example
+		R = QQ[x_0..x_4]
+		p = new Partition from {2,2,1}
+		y = youngTableau(p,{0,3,1,4,2})
+		spechtPolynomial(y,R)
+    	    	factor oo
+	     		
+
+    Node
+    	Key
+	    (spechtPolynomials,Partition, PolynomialRing)
+    	    spechtPolynomials
+	    
+    	Headline
+    	   the set of all Specht polynomial indexed by standard tableaux of shape p 
+    	Usage
+    	    spechtPolynomials(p,R)
+    	
+	Inputs 
+    	    p:Partition
+	  
+	    R:PolynomialRing
+	   
+	Outputs
+    	   :HashTable
+	     a hash table with the polynomials index by the filling of their respective tableaux 
+    	Description
+	    Text
+	    	The set of all the Specht polynomials for standard tableaux of a given shape p forms a basis for a module which is isomorphich to 
+		the Specht module indexed by p.
+	   
+	   Example
+		R = QQ[x_0..x_4]
+		p = new Partition from {2,2,1}
+		specht = spechtPolynomials(p,R)
+		specht = applyKeys(specht, y-> youngTableau(p,y));
+		applyValues(specht, f-> factor f)
+    	    	
+
+    Node
+    	Key
+	    (indexMonomial,YoungTableau, YoungTableau,PolynomialRing)
+    	    indexMonomial
+	    
+    	Headline
+    	   a monomial that represents an index tableau 
+    	Usage
+    	    indexMonomial(S,T,R)
+    	
+	Inputs
+	    S:YoungTableau
+	    
+    	    T:YoungTableau
+	    
+	    R:PolynomialRing
+	    
+	Outputs
+    	   :RingElement 
+    	Description
+	    Text
+	    	The index monomial is used in the construction of higher Specht polynomials.
+	        To calculate the index monomial first the index tableau of $S$, $i(S)$ is calculated.
+		Then the monomial is calculated as $x_T^{i(S)}$. This is a monomial with the variables as they appear in T
+		with the exponents that appear in $i(S)$.
+	   
+	   Example
+		R = QQ[x_0..x_4]
+		p = new Partition from {2,2,1}
+		S  = youngTableau(p,{0,2,1,3,4})
+		T  = youngTableau(p,{0,1,2,3,4})
+		ind = indexTableau(S)
+		indexMonomial(S,T,R)
+    	SeeAlso
+	    indexTableau
+	    
+    Node
+    	Key
+	    (higherSpechtPolynomial,YoungTableau, YoungTableau,PolynomialRing)
+    	    higherSpechtPolynomial
+	    
+    	Headline
+    	   the higher Specht polynomial index by the pair of standard tableaux (S,T) 
+    	Usage
+    	    higherSpechtPolynomial(S,T,R)
+	Inputs
+	    S:YoungTableau
+	    
+    	    T:YoungTableau
+	    
+	    R:PolynomialRing
+	    
+	    AsExpression => Boolean
+	    	An optional argument that allows to write the polynomial as an expression
+	    Robust => Boolean
+	    	An optional argument to decide the strategy for calculating the polynomial.
+	Outputs
+    	   :RingElement
+	       if AsExpression == false
+	   :Expression 
+	       if AsExpression == true
+    	Description
+	    Text
+	    	Higher Specht polynomials are a family of polynomials that form a basis of the coinvariant algebra for the symmetric group.
+		The coinvariant algebra is isomorpich as a $S_n$ module to the regular representation of $S_n$. Therefore
+		every Specht modules appears as an irreducible module in this algebra with multiplicity $f^\lambda= {\rm dim} \, S^\lambda $. 
+		Higher Specht polynomials decompose this algebra into its irreducible submodules. 
+		
+		Higher Specht polynomials are indexed by pairs of standard tableaux of the same size.
+		The usual construction of these polynomials is as follows.
+		
+		1. Given two tableaux (S,T) of shape $\lambda$ the index tableau i(S) is calculated and the index monomial $x_T^{i(S)}$ is calculated.
+		2. The Young symmetrizer $\sum_{\tau \in C(T)} \sum_{R(T)} sgn(\tau)\sigma$ is applied to the index monomial.  
+		
+		The algorithm based on this construction can be used in this method with the optional input
+		Robust => true
+		
+		A second algorithm  for this polynomials is based on a study on the structure of this polynomials.
+		
+		The outline of this construction is as follow.
+		
+	        1. Calculate the index tableau $i(S)$.
+    		2. Calculate all row permutations of $i(S)$ such that no entries in the same column are equal.
+    		3. For each different tableau $\sigma(i(S))$ in the previous step order the columns in descending order making sure to calculate the sign of the permutation used. 
+    		4. For each column in $\sigma(i(S))$ determine the Schur polynomial with partition $\lambda = (a_p-p, \ldots,a_i-i ,\ldots ,a_0) $.
+    		5. For all columns multiply the polynomials obtained in Step 4. Multiply this by the sign obtained in Step 3.
+    		6. For all tableaux $\sigma(i(S))$, add all polynomials obtained in Step 5.
+    		7. Multiply the polynomial in Step 6 by the Specht polynomial of T.  
+	   
+	   Example
+		R = QQ[x_0..x_4]
+		p = new Partition from {2,2,1}
+		S  = youngTableau(p,{0,2,1,3,4})
+		T  = youngTableau(p,{0,1,2,3,4})
+		time higherSpechtPolynomial(S,T,R)
+		time higherSpechtPolynomial(S,T,R, Robust => false)
+		time higherSpechtPolynomial(S,T,R, Robust => false, AsExpression => true)
+
+    	SeeAlso
+	    spechtPolynomial
+	    indexMonomial
+	    columnStabilizer
+	    rowStabilizer
+	    rowPermutationTableaux
+	    
+    Node
+    	Key
+	    higherSpechtPolynomials
+	    (higherSpechtPolynomials,YoungTableau,PolynomialRing)
+	    (higherSpechtPolynomials,YoungTableau,TableauList,PolynomialRing)
+	    (higherSpechtPolynomials,Partition,PolynomialRing)
+	    (higherSpechtPolynomials,PolynomialRing)
+    	    
+    	Headline
+    	   a method that gives sets of higher Specht polynomials 
+    	Usage
+    	    higherSpechtPolynomial(S,R)
+	    higherSpechtPolynomial(S,standard,R)
+	    higherSpechtPolynomial(p,R)
+	    higherSpechtPolynomial(R)
+	Inputs
+	    S:YoungTableau
+	    	    
+	    R:PolynomialRing
+	    
+	    standard:TableauList
+	    	The list of standard tableaux of the same shape as S
+	    p:Partition
+	    	
+	    AsExpression => Boolean
+	    	An optional argument that allows to write the polynomial as an expression
+	    Robust => Boolean
+	    	An optional argument to decide the strategy for calculating the polynomial.
+	Outputs
+    	   :HashTable
+	       a hash table with multiple levels depending on the input
+    	Description
+	   Text
+	    	 This methods returns higher Specht polynomials sorted in hash tables depending on the input received.
+		 
+		 If the input is just a YoungTableau $S$ of shape $\lambda$ and a PolynomialRing then it calculates the 
+		 standard tableaux $ST(\lambda)$ and then stores all polynomials $F_T^S$ such that $T \in ST(\lambda)$.
+		 The polynomials are stored in a hash table with the filling of $T$ as the key.
+		 
+		 The list $ST(\lambda)$ can be provided as an input. This is used to avoid repeating this calculation
+		 when this method is called multiple times with the same shape $\lambda$.
+		 
+		 This set forms a basis for one of the copies of the Specht module $S^\lambda$.
+	   
+	   Example
+		R = QQ[x_0..x_4]
+		p = new Partition from {2,2,1}
+		S  = youngTableau(p,{0,2,1,3,4})
+		higherSpechtPolynomials(y,R)
+		stan = standardTableaux p
+		higherSpechtPolynomials(y, stan,R)
+	   Text	
+	    	If only a partition $\lambda$ and a polynomial ring is given then the method calculates $ST(\lambda)$.
+		Then it calculates all polynomials $F_T^S$ such that $S,T \in ST(\lambda)$.
+		
+		This is a basis for the isotypical component $\chi_\lambda$ in the coinvariant algebra of the symmetric group.
+
+    	    	The polynomials are stored by calling for each $S \in \ST(\lambda) $ the previous method. The output is stored
+		in another hash table with the key being the filling of the tableau $S$.
+		  
+	   Example
+	       higherSpechtPolynomials(p,R)
+	   Text
+	       Finally if just a polynomial ring $R$ with $n$ elements is provided then the method calculates all higher Specht polynomials 
+	       for all partitions $\lambda$ of $n$.
+	       
+	       The polynomials are calculated by calling the previous method for every partition of $n$ and storing the values in
+	       a new hash table with the key being the partition.
+	   Example
+	       R = QQ[x_0..x_3]
+	       higherSpechtPolynomials(R)
+	       
 
 ///
 end
