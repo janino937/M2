@@ -65,7 +65,7 @@ export {"SpechtModuleElement"}
 export {"spechtModuleElement"}
 export {"toVector"}
 
-export {"permutationMatrix"}
+--export {"permutationMap"}
 export {"permutePolynomial"}
 
 export {"vandermondeDeterminant"}
@@ -77,7 +77,7 @@ export {"spechtPolynomials"}
 export {"higherSpechtPolynomials"}
 
 
-
+export {"permutationMatrix"}
 export {"productPermutationsList"}
 export {"permutationSign"}
 export {"rowDescentOrder"}
@@ -87,7 +87,11 @@ export {"schurPolynomial"}
 export {"generalizedVandermondeMatrix"}
 export {"Robust","AsExpression","GenerateGroup"}
 export {"generatePermutationGroup"}
---export {"representationMultiplicity"}
+export {"representationMultiplicity"}
+
+export {"elementarySymmetricPolynomials"}
+export {"powerSumSymmetricPolynomials"}
+
 export {"secondaryInvariants"}
 protect \ {row,column}
 ---
@@ -1318,9 +1322,34 @@ toVector (SpechtModuleElement) := element -> (
 
 
 
+permutationMatrix = method()
+permutationMatrix List := (perm) -> (
+    n:= #perm;
+    mat:=mutableMatrix(QQ,n,n);
+    for  i to #perm-1 do (
+	    mat_(i,perm#i)=1
+	);
+    matrix mat
+    )
 
+powerSumSymmetricPolynomials = method()
+powerSumSymmetricPolynomials PolynomialRing := R -> (
+    apply(numgens R, i-> (sum (gens R, x -> x^(i+1))))
+    )
 
-
+elementarySymmetricPolynomials = method()
+elementarySymmetricPolynomials PolynomialRing := R -> (
+    p := new Partition from {numgens R};
+    ans := new MutableList from (numgens R):0;
+    for i to numgens R -1 do (
+	l := toList ( (i+1):1 );
+	l = join(l , toList ( (numgens R - 1 -i):0));
+	y := youngTableau(p,l);
+	ele := rowPermutationTableaux y;
+	ans#i = sum (ele, t-> product(0..numgens R -1, j-> R_j^(t_(0,j)) ))
+	);
+    toList ans
+    )
 cardinalityOfConjugacyClass = method(TypicalValue => ZZ)
 cardinalityOfConjugacyClass(Partition) := p -> (
     tal := tally(toList p);
@@ -1357,8 +1386,8 @@ matrixRepresentation(Partition) := (parti)->(
     )
 
 
-permutationMatrix = method()
-permutationMatrix(List,PolynomialRing) := (permutation,R)->(
+permutationMap = method()
+permutationMap(List,PolynomialRing) := (permutation,R)->(
     generatorList:= apply(permutation,i->R_(i) );
     map(R,R,matrix{generatorList})
 )
@@ -1366,7 +1395,7 @@ permutationMatrix(List,PolynomialRing) := (permutation,R)->(
 permutePolynomial = method()
 permutePolynomial (List, RingElement) := (permutation,polynomial)-> (
     if(isPolynomialRing ring polynomial) then
-    (permutationMatrix(permutation,ring polynomial)) polynomial
+    (permutationMap(permutation,ring polynomial)) polynomial
     
     else error "argument is not a polynomial"
 )
@@ -3101,19 +3130,99 @@ multidoc ///
 	Description
 	    Text
     	    	Since the given group $H$ is a subgroup of $S_n$, the restrictions of the Specht modules to $H$
-		are also $H$-modules. The number of copies of the trivial representation of $H$ in each of this modules
+		are also $H$-modules. The number of copies of the trivial representation of $H$ in each of these modules
 		can be found by the formula for the inner product for characters applied to the characters of the previous modules.
 		
 		$\frac{1}{|H|}\sum_{C \in Cl(H)} |C|\chi(\sigma_c)$ 
 		
 		$Cl(H)$ is the set of conjugacy classes of $H$, $|C|$ is the size of the conjugacy class and $\sigma_c$ is a representative
 		of the conjugacy class $C$.
-			
+		
+		Therefore it is neccesary to calculate the cardinality of each conjugacy class. This is done by checking the conjugacy class of each element
+		in the group. For the following example a subgroup of $S_6$ isomorphic to $S_4$ is taken.	
 	   Example
-	    	generatePermutationGroup {{1,0,2,3},{1,2,3,0}}
-   
+	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
+    	    	H = generatePermutationGroup(genList)
+		
+	   Text
+    	    	For the given group a tally with the size of each conjugacy class must be provided. This tally
+		is inputed to the representationMultiplicityMethod
+    	   Example
+	       tal := tally apply (H,h->conjugacyClass h);
+	   Text
+	       The number of secondary invariants is equal to the index of the group $[S_6:H] = 30$.
+	       We check that this is true by calculating the number of trivial representations of $H$ in each 
+	       irreducible representation of $S_6$. We take into account that there are multiple copies of each
+	       representation by multiplying the values with the number of copies which is given by the hookLengthFormula.
+	   Example
+	       	partis = partitions 6;
+	       	time multi = hashTable apply (partis, p-> p=> representationMultiplicity(tal,p))
+		sum (partis, p -> multi#p * hookLengthFormula p)
+	    	The submodules where the multiplicity is zero will not be taken into account when applying the secondaryInvariants
+	   	algorithm.
+	   Text
+	      The table can be inputed to the method as well. This is made to avoid calculating the same character table for every partition of $n$. 	
+	    Example
+	    	charTable = characterTable 6
+		time multi2 = hashTable apply (partis, p-> p=> representationMultiplicity(tal,p,charTable))
+	SeeAlso
+	    generatePermutationGroup
+	    conjugacyClass
+    Node
+    	Key
+	    (secondaryInvariants,List,PolynomialRing)
+	    secondaryInvariants   
+	Headline
+	    the set of secondaryInvariants of a permutation group			
+	Usage
+	    secondaryInvariants(gens,R)
+	Inputs
+	    gens:List
+	    	a list of generators of a permutation group H
+	    R:PolynomialRing
+	    	a  polynomial ring
+	Outputs
+	    :HashTable
+	    	the set of secondary invariants indexed by the representation in which they are found
+	Description
+	    Text
+    	    	Let $R$ be a polynomial ring with $n$ generators. The secondary invariants of a group $H$ in $GL(n)$ are the set of generators of the ring of invariants $R^H$
+		as a $K[\theta_1,\ldots,\theta_n]$-module. For this algorithm we always take the primary invariants
+		 $\theta_1,\ldots,\theta_n$ to be the elementary symmetric polynomials $e_1,\ldots e_n$ so that
+		 the ring $K[\theta_1,\ldots,\theta_n]$ is the ring of symmetric polynomials.
+	    
+	    	The secondary invariants are obtained by considering the quotient ring $R/(e_1,\ldots,e_n)$.
+		This quotient ring is called the coinvariant algebre of $S_n$. This quotient is isomorphic to the regular representation of $S_n$. In particular as
+		a K-vector space it is finite dimensional.
+		In this space we find the subspace that is invariant under the action of $H$. The secondary invariants
+		correspond to a basis for this space.
+		
+	    	The advantage of this algorithm is that it decomposes the regular representation into its
+		irreducible representation by means of the higher Specht polynomials basis. This reduces
+		significantly de dimension of the vector spaces in which the invariant spaces must be found.
+	        
+		To illustrate we calculate the secondary invariants for a subgroup of cardinality 24 in $S_6$.   
+	    Example
+	    	R = QQ[x_1..x_6]
+	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
+		time seco = secondaryInvariants(genList,R);
+		seco#new Partition from {2,2,2}
 ///
 end
 
     	
- 
+ loadPackage("SpechtModule",Reload => true)
+ loadPackage("InvariantRing",Reload => true)
+ genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
+ gen = apply (genList, p-> permutationMatrix p)
+ H = generateGroup(gen,QQ)
+ P = elementarySymmetricPolynomials R
+ time secondaryInvariants (P,H)
+
+K=toField(QQ[a]/(a^2+a+1));
+R=K[x_1,x_2];
+A=matrix{{a,0},{0,a^2}};
+B=sub(matrix{{0,1},{1,0}},K);
+D6={A^0,A,A^2,B,A*B,A^2*B};
+P={x_1^3+x_2^3,(x_1^3*x_2^3)};
+secondaryInvariants(P,D6)
