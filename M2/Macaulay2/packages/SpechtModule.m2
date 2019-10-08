@@ -24,8 +24,8 @@ export {"listToTableau"}
 
 export {"TableauList"}
 export {"tableauList"}
-export {"addTableau"}
 export {"toListOfTableaux"}
+export {"addTableau"}
 
 export {"tabloids"}
 export {"standardTableaux"}
@@ -41,18 +41,13 @@ export {"conjugacyClass"}
 export {"matrixRepresentation"}
 
 export {"readingWord"}
-export {"wordToTableau"}
 
-export {"extendedPermutations"}
-export {"directProductOfPermutations"}
 
 export {"columnStabilizer"}
 
 export {"rowStabilizer"}
 
-export {"signPermutation"}
 
-export {"combinations"}
 export {"garnirElement"}
 export {"sortColumnsTableau"}
 export {"cardinalityOfConjugacyClass"}
@@ -63,9 +58,7 @@ export {"straighteningAlgorithm"}
 
 export {"SpechtModuleElement"}
 export {"spechtModuleElement"}
-export {"toVector"}
 
---export {"permutationMap"}
 export {"permutePolynomial"}
 
 export {"vandermondeDeterminant"}
@@ -77,15 +70,11 @@ export {"spechtPolynomials"}
 export {"higherSpechtPolynomials"}
 
 
-export {"permutationMatrix"}
-export {"productPermutationsList"}
 export {"permutationSign"}
-export {"rowDescentOrder"}
-export {"sortColumn"}
 export {"firstRowDescent"}
 export {"schurPolynomial"}
 export {"generalizedVandermondeMatrix"}
-export {"Robust","AsExpression","GenerateGroup"}
+export {"Robust","AsExpression"}
 export {"generatePermutationGroup"}
 export {"representationMultiplicity"}
 
@@ -151,7 +140,6 @@ characterTable ZZ := n -> (
     	--print((charTables#i)#values);	
     ); 
    charTable := reduceCharacterTable(charTables#n);
-   charTable#values = matrix charTable#values;
    charTable
 )
 
@@ -1564,7 +1552,7 @@ vectorToPolynomial(List,HashTable,TableauList):= (vector, basis,standard)->(
    	sum ( #vector, i-> if(vector#i == 0) then 0 else vector#i*basis#( getRow(standard,i))  )	
     )
 
-secondaryInvariants = method(Options => {GenerateGroup => true, AsExpression => false })
+secondaryInvariants = method(Options => { AsExpression => false, Robust => false })
 secondaryInvariants(List,PolynomialRing):= o->(gens,R)-> (
     	if #gens#0 != numgens R then error "the size of the elements does not match the number of generators of R";
 	H := generatePermutationGroup gens;
@@ -1626,8 +1614,7 @@ multidoc ///
     Node
     	Key
 	    CharacterTable
-	    (symbol _,CharacterTable, Sequence)
-    	    (net, CharacterTable)
+	    (net, CharacterTable)
 	Headline
     	    the class of character tables
 	Description
@@ -1639,10 +1626,59 @@ multidoc ///
 	    Example	
 		charTable = characterTable 5
    		a = new Partition from {3,1,1}; b = new Partition from {1,1,1,1,1}
-		peek charTable
+		peek charTable	
+ 	SeeAlso
+ 	    characterTable
+
+    Node
+    	Key
+	    (symbol _,CharacterTable, Sequence)
+	Headline
+    	    retrieves an entry from the character table
+	Usage
+	    charTable_(a,b)
+	Inputs
+	    charTable:CharacterTable
+	    pos:Sequence
+	    	the position (a,b) to be consulted. It can be given by either a number or a Partition	
+	Outputs
+	    :ZZ
+	    	the number in the position
+	Description
+	    Example			
+		charTable = characterTable 5
+   		a = new Partition from {3,1,1}; b = new Partition from {1,1,1,1,1}
+		charTable_(0,0)
 		charTable_(a,b)
  	SeeAlso
  	    characterTable
+	    
+    Node
+    	Key
+	    ((symbol _,symbol =),CharacterTable, Sequence)
+	Headline
+    	    modifies an entry from the character table
+	Usage
+	    charTable_(a,b)=e
+	Inputs
+	    charTable:CharacterTable
+	    pos:Sequence
+	    	the position (a,b) to be consulted. It can be given by either a number or a Partition	
+	    e:Thing
+	    	the number to be put in the position
+	Outputs
+	    :ZZ
+	    	the number in the position
+	Description
+	    Example			
+		charTable = characterTable 5
+   		a = new Partition from {3,1,1}; b = new Partition from {1,1,1,1,1}
+		charTable_(0,0)=-100
+		charTable_(a,b)=100
+		charTable
+ 	SeeAlso
+ 	    characterTable
+
 
     Node
     	Key
@@ -1668,6 +1704,7 @@ multidoc ///
     Node
     	Key
 	    YoungTableau
+	    (net,YoungTableau)
     	Headline
     	    the class of Young Tableaux
     	Description
@@ -1681,9 +1718,10 @@ multidoc ///
     		peek y
     Node
     	Key
+	    youngTableau
+	    (youngTableau,Partition)
     	    (youngTableau,Partition,List)
     	    (youngTableau,Partition,MutableList)
-    	    youngTableau
     	Headline
     	    the constructor method for the class YoungTableau
     	Usage
@@ -1692,7 +1730,7 @@ multidoc ///
     	    p:Partition
     	    	the shape of the tableau
     	    l:List
-    	    	the filling of the tableau
+    	    	the filling of the tableau, if it is not provided then it is assume that the filling is zero.
     	Outputs
     	    :YoungTableau
     	    	a young tableau with the given shape and filling
@@ -1783,6 +1821,29 @@ multidoc ///
 
     Node
     	Key
+    	    ((symbol _,symbol =),YoungTableau,Sequence)
+    	Headline
+    	    changes the entry in cell (a,b) from a Young Tableau
+    	Usage
+    	    y_(a,b) = e
+    	Inputs
+    	    y:YoungTableau
+    	    
+    	    pos:Sequence
+    	    	the position (a,b) of the cell where a is the row and b the column
+	    e:Thing
+	    	a number, the new entry of the cell
+    	Outputs
+    	    :YoungTableau
+    	    	the number in the cell at the position (a,b) of the tableau y
+    	Description
+	    Example
+	        y = youngTableau(new Partition from {2,2},{0,2,1,3})
+		y_(0,0)=1
+		y
+
+    Node
+    	Key
     	    (symbol ^,YoungTableau,ZZ)
     	Headline
     	    retrieves a row from a Young Tableau
@@ -1794,8 +1855,8 @@ multidoc ///
     	    n:ZZ
     	    	the number of the row
     	Outputs
-    	    :List
-    	    	a list of the numbers that appear in row n of y
+    	    :ZZ
+    	    	the number added
     	Description
 	    Example
 	        y = youngTableau(new Partition from {3,2},{0,2,1,3,4})
@@ -1916,10 +1977,68 @@ multidoc ///
 	    	y = youngTableau(new Partition from {2,1,1,1},{2,0,1,4,3})
 		size y
 
+    Node
+    	Key
+      	    (symbol ?, YoungTableau,YoungTableau)  
+	    
+  	Headline
+    	    an order of YoungTableaux
+  	Usage
+	    y1 ? y2
+	Inputs
+	    y1:YoungTableau
+	    y2:YoungTableau
+	Outputs
+	    :Boolean
+	    	either "=", "<" or  ">"
+	Description
+    
+    	    Text
+    	    	The order implemented checks where is the first row descent of the tableau. Then it applies
+		lexicographical order to the coordinates of these cells.
+		
+		If the row descent is in the same cell then the lexicographical order for the filling is outputed.
+		
+		This order is implemented for th net of SpechtModuleElement
+		so that the terms with some row descent appear last.
+		
+  	    Example
+    	    	p = new Partition from {2,1}
+    		y1 = youngTableau(p,{1,0,2})
+		y2 = youngTableau(p,{0,2,1})
+    		y1 ? y2
+		sort {y1,y2} 
 
     Node
     	Key
+      	    (addTableau,TableauList,YoungTableau)  
+	    (addTableau,TableauList,List)
+	    addTableau
+	    
+  	Headline
+    	    adds a Young Tableau in the list
+  	Description
+    
+    	    Text
+    	    	The following is an example of how does the method addTableau work
+  	    Example
+    	    	p = new Partition from {2,1}
+    		y1 = youngTableau(p,{0,1,2})
+		y2 = youngTableau(p,{0,2,1})
+    		t = tableauList p
+		addTableau(t, y1)
+		addTableau(t, y2)
+		addTableau(t, {1,2,0})
+
+		peek t
+ 
+
+    
+    Node
+    	Key
     	    TableauList
+	    (net,TableauList)
+	    
   	Headline
     	    the class of list of tableaux
   	Description
@@ -1971,6 +2090,37 @@ multidoc ///
 		addTableau(t1,y)
 		peek t1
 
+    Node
+    	Key
+    	    (symbol _,TableauList,ZZ)
+    	    
+  	Headline
+    	    a method that retrieves the tableaux from the list
+  	Usage
+    	    tableaux_i
+    	    
+  	Inputs
+    	    tableaux:TableauList
+    	    	
+    	    i:ZZ
+    	    	the index of the tableau to be retrieved
+  	Outputs
+      	    :YoungTableau
+            	the YoungTableau stored at position i
+  	Description
+        
+    	    Example
+    	    	p = new Partition from {2,1}
+    		y1 = youngTableau(p,{0,1,2})
+		y2 = youngTableau(p,{0,2,1})
+		y3 = youngTableau(p,{1,2,0})
+    		t = tableauList p;
+		addTableau(t, y1);
+		addTableau(t, y2);
+		addTableau(t, y3);
+		t_0
+		t_2
+		
     Node
     	Key
 	    (toListOfTableaux,TableauList)
@@ -2428,15 +2578,20 @@ multidoc ///
     Node
     	Key
     	    spechtModuleElement
+	    (spechtModuleElement,YoungTableau)
 	    (spechtModuleElement,YoungTableau,QQ )
 	    (spechtModuleElement,YoungTableau,ZZ )
-	    (spechtModuleElement,YoungTableau)
+	    (spechtModuleElement,Partition,MutableHashTable)
+	    
 	    
     	Headline
     	    the constructor for the class SpechtModuleElement
     	Usage
-    	    spechtModuleElement(y,n)
+    	    spechtModuleElement(p,v)
+	    spechtModuleElement(y,n)
+	    spechtModuleElement(y,m)
 	    spechtModueElement(y)
+	    
     	Inputs
     	    y:YoungTableau
 	    	the label of the polytabloid
@@ -2444,6 +2599,11 @@ multidoc ///
 	    	a number. If not specified then it is assumed to be a 1.
 	    m:QQ
 	    	a number. If not specified then it is assumed to be a 1.
+	    p:Partition
+	    	A partition that index a module
+	    v:MutableHashTable
+	    	A mutable hash table from a SpechtModuleElement
+	       
     	Outputs
     	    :SpechtModuleElement
 		an element of the form n*poly_y, where poly_y is the polytabloid labeled by the tableau y.
@@ -3002,9 +3162,9 @@ multidoc ///
 	    	If only a partition $\lambda$ and a polynomial ring is given then the method calculates $ST(\lambda)$.
 		Then it calculates all polynomials $F_T^S$ such that $S,T \in ST(\lambda)$.
 		
-		This is a basis for the isotypical component $\chi_\lambda$ in the coinvariant algebra of the symmetric group.
+		This is a basis for the isotypical component $X_\lambda$ in the coinvariant algebra of the symmetric group.
 
-    	    	The polynomials are stored by calling for each $S \in \ST(\lambda) $ the previous method. The output is stored
+    	    	The polynomials are stored by calling for each $S \in ST(\lambda) $ the previous method. The output is stored
 		in another hash table with the key being the filling of the tableau $S$.
 		  
 	   Example
@@ -3133,10 +3293,10 @@ multidoc ///
 		are also $H$-modules. The number of copies of the trivial representation of $H$ in each of these modules
 		can be found by the formula for the inner product for characters applied to the characters of the previous modules.
 		
-		$\frac{1}{|H|}\sum_{C \in Cl(H)} |C|\chi(\sigma_c)$ 
+		$\frac{1}{|H|}\sum_{C \in Cl(H)} |C|X_\lambda(\sigma_c)$ 
 		
 		$Cl(H)$ is the set of conjugacy classes of $H$, $|C|$ is the size of the conjugacy class and $\sigma_c$ is a representative
-		of the conjugacy class $C$.
+		of the conjugacy class $C$ and $X$ is the character of the representation.
 		
 		Therefore it is neccesary to calculate the cardinality of each conjugacy class. This is done by checking the conjugacy class of each element
 		in the group. For the following example a subgroup of $S_6$ isomorphic to $S_4$ is taken.	
@@ -3158,10 +3318,10 @@ multidoc ///
 	       	partis = partitions 6;
 	       	time multi = hashTable apply (partis, p-> p=> representationMultiplicity(tal,p))
 		sum (partis, p -> multi#p * hookLengthFormula p)
-	    	The submodules where the multiplicity is zero will not be taken into account when applying the secondaryInvariants
-	   	algorithm.
 	   Text
-	      The table can be inputed to the method as well. This is made to avoid calculating the same character table for every partition of $n$. 	
+	      The submodules where the multiplicity is zero will not be taken into account when applying the secondaryInvariants
+	      algorithm.
+      	      The character table can be inputed to the method as well. This is made to avoid calculating the same character table for every partition of $n$. 	
 	    Example
 	    	charTable = characterTable 6
 		time multi2 = hashTable apply (partis, p-> p=> representationMultiplicity(tal,p,charTable))
@@ -3207,11 +3367,62 @@ multidoc ///
 	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
 		time seco = secondaryInvariants(genList,R);
 		seco#new Partition from {2,2,2}
+
+
+   Node
+    	Key
+	    (powerSumSymmetricPolynomials,PolynomialRing)
+	    powerSumSymmetricPolynomials
+	Headline
+	    the power sum symmetric polynomials			
+	Usage
+	    powerSumSymmetricPolynomials(R)
+	Inputs
+	    R:PolynomialRing
+	    	a  polynomial ring
+	Outputs
+	    :List
+	    	the lis of power sum symmetric polynomials
+	Description
+	    Text
+	   	 As an example the power sum symmetric polynomials of a ring with three variables
+	     	 are calculated. These polynomials form a basis for the ring of symmetric polynomials.
+	    Example
+	     	 R = QQ[x_1..x_3]
+		 powerSumSymmetricPolynomials R
+        SeeAlso
+	    elementarySymmetricPolynomials
+
+   Node
+    	Key
+	    (elementarySymmetricPolynomials,PolynomialRing)
+	    elementarySymmetricPolynomials
+	Headline
+	    the elementary symmetric polynomials			
+	Usage
+	    elementarySymmetricPolynomials(R)
+	Inputs
+	    R:PolynomialRing
+	    	a  polynomial ring
+	Outputs
+	    :List
+	    	the lis of power elementary symmetric polynomials
+	Description
+	    Text
+	   	 As an example the elementary symmetric polynomials of a ring with three variables
+	     	 are calculated. These polynomials form a basis for the ring of symmetric polynomials.
+	    Example
+	     	 R = QQ[x_1..x_3]
+		 elementarySymmetricPolynomials R
+    	SeeAlso
+	    powerSumSymmetricPolynomials
 ///
 end
 
     	
  loadPackage("SpechtModule",Reload => true)
+ installPackage(SpechtModule)
+ 
  loadPackage("InvariantRing",Reload => true)
  genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
  gen = apply (genList, p-> permutationMatrix p)
