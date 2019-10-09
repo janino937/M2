@@ -47,6 +47,7 @@ export {"columnStabilizer"}
 
 export {"rowStabilizer"}
 
+export {"SchurPolynomial"}
 
 export {"garnirElement"}
 export {"sortColumnsTableau"}
@@ -1388,6 +1389,7 @@ permutePolynomial (List, RingElement) := (permutation,polynomial)-> (
     else error "argument is not a polynomial"
 )
 
+
 permutePolynomial(List,Product) := (permutation,polynomial) -> (
     new Product from apply (toList polynomial,f-> permutePolynomial(permutation,f))
     )
@@ -1422,6 +1424,7 @@ spechtPolynomials (Partition,PolynomialRing):= o->(partition,R)-> (
     hashTable apply (standard#length, i-> getRow(standard,i) => permutePolynomial(getRow(standard,i) , firstPolynomial) )
     )
 
+
 indexMonomial = method()
 indexMonomial(YoungTableau, YoungTableau, PolynomialRing) := (S,T,R) -> (
     ind := indexTableau S;
@@ -1446,7 +1449,17 @@ higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R
     else (
 	
 	rowPermutations := rowPermutationTableaux indexTableau S;
-	ans = spechtPolynomial(T,R,AsExpression =>o.AsExpression)*sum(rowPermutations, tab -> product apply (numcols S, i->schurPolynomial(T_i,tab_i,R,AsExpression => o.AsExpression)))
+	ans = spechtPolynomial(T,R,AsExpression =>o.AsExpression)*sum(rowPermutations, tab -> product apply (numcols S, i->
+		(
+		    (sortedList,sign) := sortList(tab_i);
+		    sortedList = sortedList  -  toList (0..(#(tab_i)-1));
+		    sortedList = reverse sortedList;
+		    firstZero := position(sortedList,i->i==0);
+		    lastNonZero:= 0;
+	 	    if (firstZero === null) then lastNonZero = #sortedList-1 else lastNonZero = firstZero -1;
+		    partition:= new Partition from sortedList_{0..lastNonZero};
+		    print partition;
+		    schurPolynomial(T_i,partition,R,AsExpression => o.AsExpression))))
 	);
     ans
    )
@@ -1483,35 +1496,52 @@ generalizedVandermondeMatrix(List,List,PolynomialRing):= (indices, exponents, R)
     M
     )
 
+SchurPolynomial = new Type of Expression
+
+permutePolynomial(List,SchurPolynomial) := (permutation,polynomial) -> (
+    new SchurPolynomial from {permutation_(polynomial#0),polynomial#1,polynomial#2}
+    )
+
+
+net SchurPolynomial := expr -> (
+    str := " "|net(toList expr#1);
+    print(str);
+    str = str||"s";
+    str = str||(" "|net(expr#0));
+    str
+    )
+
+ring SchurPolynomial := exp -> exp#2
+
+value SchurPolynomial := exp ->
+(
+    schurPolynomial(exp#0,exp#1,ring exp)
+    ) 
+
 schurPolynomial = method(Options => {AsExpression => false, Strategy=>"semistandard_tableaux"})
-schurPolynomial(List,List,PolynomialRing) := o->(indices, exponents, R) -> (
-    ans:= 1_R;
-    sgn:= 1;
-    if #indices != #exponents then error "size of indices and exponets does not match"; 
-    if o.Strategy == "determinant" then
-    ans = determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R)
-    else if o.Strategy == "semistandard_tableaux" then (
-        sortedList := sort exponents;
-	sortedList =  sortedList - toList (0..(#sortedList-1));
-        --print sortedList;
-	--print increasing sortedList;
-	if not increasing sortedList then ans = 0_R else (
-	 l:= 0;
-	 (l,sgn)= sortList exponents;
-	 sortedList = reverse sortedList; 
-	 notZero := position(sortedList,i->i==0);
-	 if(notZero === null) then notZero = #sortedList-1 else notZero = notZero -1;
-	 if(notZero >= 0 ) then 
-	(
-	    partition:= new Partition from sortedList_{0..notZero};
-	    --print partition;
-	    semistandard := semistandardTableaux(partition, #indices );
-	    ans = sum(semistandard#length, i-> product(getRow(semistandard,i),j->R_(indices#j)));
-	    if o.AsExpression then ans = factor(ans);
-	    );
-	);
+schurPolynomial(List,Partition,PolynomialRing) := o->(indices, partition, R) -> (
+    ans := 0;
+    if o.AsExpression then (
+    	
+	ans = new SchurPolynomial from {indices,partition,R};
+	)
+        else (
+    	ans= 1_R;
+    	if #indices < #partition then error "size of indices and exponets does not match"; 
+    	if o.Strategy == "determinant" then (
+    	    exponents := join (toList (#indices - #partition:0), reverse toList partition) + toList 0..(#indices-1);
+    	    ans = determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R))
+    	else if o.Strategy == "semistandard_tableaux" then (
+	    print partition;
+	    if #partition == 0 then ans = 1_R else (
+            	
+		semistandard := semistandardTableaux(partition, #indices );
+	    	print semistandard;
+		ans = sum(semistandard#length, i-> product(getRow(semistandard,i),j->R_(indices#j)))
+	     	);
+	);    
     );
-    sgn*ans
+    ans
     )
 
 increasing = method()
@@ -3279,17 +3309,17 @@ multidoc ///
 		
     Node
     	Key
-	    (schurPolynomial,List,List,PolynomialRing)
+	    (schurPolynomial,List,Partition,PolynomialRing)
 	    schurPolynomial
 	Headline
 	    a method for constructing Schur polynomials
 	Usage
-	    generalizedVandermondeMatrix(indices,exponents,R)
+	    schurPolynomial(indices,parti,R)
 	Inputs
 	    indices:List
 	    	a lits of the variables that appear in each column of the matrix
-	    exponents:List
-	    	a list of the powers that appear in each row of the matrix
+	    parti:Partition
+	    	a partition that indexes the schur polynomial
 	    R:PolynomialRing
 	    
 	Outputs
@@ -3433,6 +3463,7 @@ multidoc ///
 	    	R = QQ[x_1..x_6]
 	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
 		time seco = secondaryInvariants(genList,R);
+		time seco = secondaryInvariants(genList,R,AsExpression=>true);
 		seco#new Partition from {2,2,2}
    Node
     	Key
