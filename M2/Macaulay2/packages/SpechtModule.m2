@@ -1400,6 +1400,9 @@ permutePolynomial(List,Power) := (permutation,polynomial) -> (
     new Power from {permutePolynomial(permutation,polynomial#0),polynomial#1}
     )
 
+permutePolynomial(List,Minus) := (permutation,polynomial) -> (
+    new Minus from {permutePolynomial(permutation,polynomial#0)}
+    )
 vandermondeDeterminant = method(Options => {AsExpression => false})
 vandermondeDeterminant(List,PolynomialRing):= o-> (lista,R)->(
     variables := apply(lista,i-> R_i);
@@ -1407,15 +1410,15 @@ vandermondeDeterminant(List,PolynomialRing):= o-> (lista,R)->(
     else product flatten apply (#lista, i->toList apply( (i+1)..(#lista-1),j-> (variables#j-variables#i) ) )
     )
 
-spechtPolynomial = method()
-spechtPolynomial ( YoungTableau, PolynomialRing ) := (tableau, R)-> (
-    product (numcols tableau, i->vandermondeDeterminant(tableau_i,R))
+spechtPolynomial = method(Options => {AsExpression => false})
+spechtPolynomial ( YoungTableau, PolynomialRing ) := o->(tableau, R)-> (
+    product (numcols tableau, i->vandermondeDeterminant(tableau_i,R,AsExpression => o.AsExpression))
     )
 
-spechtPolynomials = method()
-spechtPolynomials (Partition,PolynomialRing):= (partition,R)-> (
+spechtPolynomials = method(Options => {AsExpression => false})
+spechtPolynomials (Partition,PolynomialRing):= o->(partition,R)-> (
     standard:= standardTableaux partition;
-    firstPolynomial:= spechtPolynomial(standard_0,R);
+    firstPolynomial:= spechtPolynomial(standard_0,R,AsExpression => o.AsExpression);
     hashTable apply (standard#length, i-> getRow(standard,i) => permutePolynomial(getRow(standard,i) , firstPolynomial) )
     )
 
@@ -1443,7 +1446,7 @@ higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R
     else (
 	
 	rowPermutations := rowPermutationTableaux indexTableau S;
-	ans = sum(rowPermutations, tab -> product apply (numcols S, i->determinant generalizedVandermondeMatrix(T_i,tab_i,R)));
+	ans = spechtPolynomial(T,R,AsExpression =>o.AsExpression)*sum(rowPermutations, tab -> product apply (numcols S, i->schurPolynomial(T_i,tab_i,R,AsExpression => o.AsExpression)))
 	);
     ans
    )
@@ -1480,7 +1483,7 @@ generalizedVandermondeMatrix(List,List,PolynomialRing):= (indices, exponents, R)
     M
     )
 
-schurPolynomial = method(Options => {AsExpression => false, Strategy=>"determinant"})
+schurPolynomial = method(Options => {AsExpression => false, Strategy=>"semistandard_tableaux"})
 schurPolynomial(List,List,PolynomialRing) := o->(indices, exponents, R) -> (
     ans:= 1_R;
     sgn:= 1;
@@ -1504,6 +1507,7 @@ schurPolynomial(List,List,PolynomialRing) := o->(indices, exponents, R) -> (
 	    --print partition;
 	    semistandard := semistandardTableaux(partition, #indices );
 	    ans = sum(semistandard#length, i-> product(getRow(semistandard,i),j->R_(indices#j)));
+	    if o.AsExpression then ans = factor(ans);
 	    );
 	);
     );
@@ -1563,7 +1567,8 @@ secondaryInvariants(List,PolynomialRing):= o->(gens,R)-> (
 		if representationMultiplicity(tal,p,charTable)== 0 then p=> {}
 		else (
 		    standard := standardTableaux p;
-		    isotypicalComponentBasis := higherSpechtPolynomials(p,R,AsExpression => o.AsExpression);
+		    isotypicalComponentBasis := higherSpechtPolynomials(p,R,AsExpression => o.AsExpression, Robust => o.Robust);
+		    
 		    if representationMultiplicity(tal,p,charTable)==standard#length then (
 		    	
 			index:= hashTable apply (standard#length, i-> getRow(standard,i)=> i);
@@ -2860,6 +2865,7 @@ multidoc ///
     	    (permutePolynomial, List, Product)
 	    (permutePolynomial, List, Sum)
 	    (permutePolynomial, List, Power)
+	    (permutePolynomial, List, Minus)
     	Headline
     	    permutes a RingElement or a PolynomialExpression of RingElements
     	Usage
@@ -2867,6 +2873,7 @@ multidoc ///
 	    permutePolynomial(perm,prod)
 	    permutePolynomial(perm,s)
 	    permutePolynomial(perm,pow)
+	    permutePolynomial(perm,minu)
 	    
     	Inputs
 	    
@@ -2878,6 +2885,8 @@ multidoc ///
 	    	a sum expression
 	    pow:Power
 	    	a power expression
+	    minu:Minus
+	    	a minus expression
 	    perm:
 	    	a permutation
     	Outputs
@@ -2939,6 +2948,64 @@ multidoc ///
 		vandermondeDeterminant({0,2,3},R)
     	    	factor oo
 		
+
+    Node
+    	Key
+	    AsExpression
+	    [vandermondeDeterminant, AsExpression]
+    	    [higherSpechtPolynomial,AsExpression]
+	    [higherSpechtPolynomials,AsExpression]
+	    [secondaryInvariants,AsExpression]
+    	Headline
+    	    an optional argument that returns polynomials as expressions	
+    	Description
+	    Text	
+    	    	If the optional argument AsExpression is set to true then the Vandermonde determinants are
+		outputed as a Product expression. This is done primarily to reduce the size of the object since a Vandermonde determinant
+		has n! terms but only n*(n-1)/2 factors.
+		  
+	    Example
+		R = QQ[x_0..x_3]
+		vandermondeDeterminant({0,2,3},R,AsExpression => true)
+		
+    	    Text
+	    	For the method higherSpechtPolynomial if this option is true then the returned polynomial is factorize
+		All methods that call higherSpechtPolynomial have a similar behaviour
+	   Example
+	       p = new Partition from {2,2}
+	       S = youngTableau(p,{0,2,1,3})
+	       T = youngTableau(p,{0,1,2,3})
+	       higherSpechtPolynomial(S,T,R,AsExpression => true)
+	       higherSpechtPolynomials(R,AsExpression => true)
+
+
+    Node
+    	Key
+	    Robust
+	    [higherSpechtPolynomial,Robust]
+	    [higherSpechtPolynomials,Robust]
+	    [secondaryInvariants,Robust]
+    	Headline
+    	    an optional argument for specifying the algorithm for calculating higherSpechtPolynomials	
+    	Description
+	    Text	
+    	    	If the optional argument AsExpression is set to true then the Vandermonde determinants are
+		outputed as a Product expression. This is done primarily to reduce the size of the object since a Vandermonde determinant
+		has n! terms but only n*(n-1)/2 factors.
+		  
+	    Example
+		R = QQ[x_0..x_3]
+		vandermondeDeterminant({0,2,3},R,AsExpression => true)
+		
+    	    Text
+	    	For the method higherSpechtPolynomial if this option is true then the returned polynomial is factorize
+		All methods that call higherSpechtPolynomial have a similar behaviour
+	   Example
+	       p = new Partition from {2,2}
+	       S = youngTableau(p,{0,2,1,3})
+	       T = youngTableau(p,{0,1,2,3})
+	       higherSpechtPolynomial(S,T,R,AsExpression => true)
+	       higherSpechtPolynomials(R,AsExpression => true)
 	        
     Node
     	Key
@@ -3367,8 +3434,6 @@ multidoc ///
 	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
 		time seco = secondaryInvariants(genList,R);
 		seco#new Partition from {2,2,2}
-
-
    Node
     	Key
 	    (powerSumSymmetricPolynomials,PolynomialRing)
