@@ -1412,9 +1412,29 @@ vandermondeDeterminant(List,PolynomialRing):= o-> (lista,R)->(
     else product flatten apply (#lista, i->toList apply( (i+1)..(#lista-1),j-> (variables#j-variables#i) ) )
     )
 
+
+SpechtPolynomial = new Type of Expression
+
+net SpechtPolynomial := expr -> (
+    str := " "|net(toList expr#1);
+    print(str);
+    str = str||"S";
+    str = str||(" "|net(expr#0));
+    str^1
+    )
+
+ring SpechtPolynomial := exp -> exp#2
+
+value SpechtPolynomial := exp ->
+(
+    spechtPolynomial(youngTableau(exp#1,exp#o),ring exp)
+    ) 
+
+
 spechtPolynomial = method(Options => {AsExpression => false})
 spechtPolynomial ( YoungTableau, PolynomialRing ) := o->(tableau, R)-> (
-    product (numcols tableau, i->vandermondeDeterminant(tableau_i,R,AsExpression => o.AsExpression))
+    if(AsExpression == true) then new SpechtPolynomial from {values tableau,tableau#partition,R}
+    else product (numcols tableau, i->vandermondeDeterminant(tableau_i,R,AsExpression => o.AsExpression))
     )
 
 spechtPolynomials = method(Options => {AsExpression => false})
@@ -1508,7 +1528,7 @@ net SchurPolynomial := expr -> (
     print(str);
     str = str||"s";
     str = str||(" "|net(expr#0));
-    str
+    str^1
     )
 
 ring SchurPolynomial := exp -> exp#2
@@ -3464,7 +3484,8 @@ multidoc ///
 	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
 		time seco = secondaryInvariants(genList,R);
 		time seco = secondaryInvariants(genList,R,AsExpression=>true);
-		seco#new Partition from {2,2,2}
+		seco#(new Partition from {2,2,2})#{0,2,1,3,4,5}#0
+		seco
    Node
     	Key
 	    (powerSumSymmetricPolynomials,PolynomialRing)
@@ -3478,7 +3499,7 @@ multidoc ///
 	    	a  polynomial ring
 	Outputs
 	    :List
-	    	the lis of power sum symmetric polynomials
+	    	the list of power sum symmetric polynomials
 	Description
 	    Text
 	   	 As an example the power sum symmetric polynomials of a ring with three variables
