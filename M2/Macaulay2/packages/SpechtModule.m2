@@ -1415,11 +1415,10 @@ vandermondeDeterminant(List,PolynomialRing):= o-> (lista,R)->(
 
 SpechtPolynomial = new Type of Expression
 
-net SpechtPolynomial := expr -> (
-    str := " "|net(toList expr#1);
-    print(str);
+net SpechtPolynomial := polynomial -> (
+    str := " "|net(toList polynomial#1);
     str = str||"S";
-    str = str||(" "|net(expr#0));
+    str = str||(" "|net(polynomial#0));
     str^1
     )
 
@@ -1427,14 +1426,16 @@ ring SpechtPolynomial := exp -> exp#2
 
 value SpechtPolynomial := exp ->
 (
-    spechtPolynomial(youngTableau(exp#1,exp#o),ring exp)
+    spechtPolynomial(youngTableau(exp#1,exp#0),ring exp)
     ) 
+
+permutePolynomial (List,SpechtPolynomial) := (permutation, polynomial) -> new SpechtPolynomial from {(polynomial#0)_permutation, polynomial#1,polynomial#2} 
+
 
 
 spechtPolynomial = method(Options => {AsExpression => false})
 spechtPolynomial ( YoungTableau, PolynomialRing ) := o->(tableau, R)-> (
-    if(AsExpression == true) then new SpechtPolynomial from {values tableau,tableau#partition,R}
-    else product (numcols tableau, i->vandermondeDeterminant(tableau_i,R,AsExpression => o.AsExpression))
+    product (numcols tableau, i->vandermondeDeterminant(tableau_i,R,AsExpression => o.AsExpression))
     )
 
 spechtPolynomials = method(Options => {AsExpression => false})
@@ -1455,9 +1456,10 @@ indexMonomial(YoungTableau, YoungTableau, PolynomialRing) := (S,T,R) -> (
     monomial
     )
 
-higherSpechtPolynomial = method(Options => {AsExpression => false , Robust => true})
+higherSpechtPolynomial = method(Options => {AsExpression => false , Robust => false})
 higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R)->(
     if toList S#partition != toList T#partition then error "tableau shapes of S and T do not match";
+    if size S != numgens R then error "number of generators must be equal to the size of the tableaux";
     ans:= R_0;
     
     if(o.Robust) then (
@@ -1478,7 +1480,6 @@ higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R
 		    lastNonZero:= 0;
 	 	    if (firstZero === null) then lastNonZero = #sortedList-1 else lastNonZero = firstZero -1;
 		    partition:= new Partition from sortedList_{0..lastNonZero};
-		    print partition;
 		    schurPolynomial(T_i,partition,R,AsExpression => o.AsExpression))))
 	);
     ans
@@ -1486,7 +1487,7 @@ higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R
 
 
     
-higherSpechtPolynomials = method(Options => {AsExpression => false , Robust => true})
+higherSpechtPolynomials = method(Options => {AsExpression => false , Robust => false})
 higherSpechtPolynomials(Partition,PolynomialRing):= o-> (partition,R) -> (
     
     standard:= standardTableaux partition;
@@ -1525,7 +1526,6 @@ permutePolynomial(List,SchurPolynomial) := (permutation,polynomial) -> (
 
 net SchurPolynomial := expr -> (
     str := " "|net(toList expr#1);
-    print(str);
     str = str||"s";
     str = str||(" "|net(expr#0));
     str^1
@@ -1541,26 +1541,18 @@ value SchurPolynomial := exp ->
 schurPolynomial = method(Options => {AsExpression => false, Strategy=>"semistandard_tableaux"})
 schurPolynomial(List,Partition,PolynomialRing) := o->(indices, partition, R) -> (
     ans := 0;
-    if o.AsExpression then (
-    	
-	ans = new SchurPolynomial from {indices,partition,R};
-	)
-        else (
-    	ans= 1_R;
-    	if #indices < #partition then error "size of indices and exponets does not match"; 
-    	if o.Strategy == "determinant" then (
-    	    exponents := join (toList (#indices - #partition:0), reverse toList partition) + toList 0..(#indices-1);
-    	    ans = determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R))
-    	else if o.Strategy == "semistandard_tableaux" then (
-	    print partition;
-	    if #partition == 0 then ans = 1_R else (
-            	
-		semistandard := semistandardTableaux(partition, #indices );
-	    	print semistandard;
-		ans = sum(semistandard#length, i-> product(getRow(semistandard,i),j->R_(indices#j)))
-	     	);
-	);    
-    );
+    ans= 1_R;
+    if #indices < #partition then error "size of indices and exponets does not match"; 
+    if o.Strategy == "determinant" then (
+	exponents := join (toList (#indices - #partition:0), reverse toList partition) + toList 0..(#indices-1);
+	ans = determinant generalizedVandermondeMatrix(indices,exponents,R)// vandermondeDeterminant(indices,R))
+    else if o.Strategy == "semistandard_tableaux" then (
+	if #partition == 0 then ans = 1_R else (
+	    semistandard := semistandardTableaux(partition, #indices );
+	    ans = sum(semistandard#length, i-> product(getRow(semistandard,i),j->R_(indices#j)))
+	    );
+	);
+    if o.AsExpression then ans = factor(ans) ;
     ans
     )
 
@@ -1614,13 +1606,15 @@ secondaryInvariants(List,PolynomialRing):= o->(gens,R)-> (
        	partis := partitions numgens R;
 	charTable := characterTable numgens R;
 	hashTable apply (partis, p-> (
-		if representationMultiplicity(tal,p,charTable)== 0 then p=> {}
+		multi := representationMultiplicity(tal,p,charTable);
+		print(p,"Ambient_Dimension",hookLengthFormula(p),"Rank",multi);
+		if multi == 0 then p=> {}
 		else (
 		    standard := standardTableaux p;
 		    isotypicalComponentBasis := higherSpechtPolynomials(p,R,AsExpression => o.AsExpression, Robust => o.Robust);
 		    
-		    if representationMultiplicity(tal,p,charTable)==standard#length then (
-		    	
+		    if multi==standard#length then (
+		       
 			index:= hashTable apply (standard#length, i-> getRow(standard,i)=> i);
 			p => hashTable apply(keys isotypicalComponentBasis, S->( S=> 
 				applyKeys(isotypicalComponentBasis#S, T-> index#T) ) )			 
@@ -3085,6 +3079,7 @@ multidoc ///
 		p = new Partition from {2,2,1}
 		y = youngTableau(p,{0,3,1,4,2})
 		spechtPolynomial(y,R)
+		spechtPolynomial(y,R,AsExpression=>true)
     	    	factor oo
 	     		
 
@@ -3115,6 +3110,9 @@ multidoc ///
 		R = QQ[x_0..x_4]
 		p = new Partition from {2,2,1}
 		specht = spechtPolynomials(p,R)
+		specht = spechtPolynomials(p,R,AsExpression => true)
+		
+		
 		specht = applyKeys(specht, y-> youngTableau(p,y));
 		applyValues(specht, f-> factor f)
     	    	
@@ -3275,6 +3273,10 @@ multidoc ///
 		higherSpechtPolynomials(S,R)
 		stan = standardTableaux p
 		higherSpechtPolynomials(S, stan,R)
+		higherSpechtPolynomials(S, stan,R,AsExpression =>true,Robust=>false)
+		p = partitions 10
+		R = QQ[x_0..x_9]
+		higherSpechtPolynomials(p#0,R,AsExpression => true)
 	   Text	
 	    	If only a partition $\lambda$ and a polynomial ring is given then the method calculates $ST(\lambda)$.
 		Then it calculates all polynomials $F_T^S$ such that $S,T \in ST(\lambda)$.
@@ -3486,6 +3488,11 @@ multidoc ///
 		time seco = secondaryInvariants(genList,R,AsExpression=>true);
 		seco#(new Partition from {2,2,2})#{0,2,1,3,4,5}#0
 		seco
+		
+		R = QQ[x_0..x_9]
+		genList = {{5,1,8,3,4,0,7,6,2,9},{4,0,1,2,3,7,8,9,5,6}}
+		time seco secondaryInvariants(genList,R,AsExpression => true)
+		
    Node
     	Key
 	    (powerSumSymmetricPolynomials,PolynomialRing)
@@ -3523,7 +3530,7 @@ multidoc ///
 	    	a  polynomial ring
 	Outputs
 	    :List
-	    	the lis of power elementary symmetric polynomials
+	    	the list of power elementary symmetric polynomials
 	Description
 	    Text
 	   	 As an example the elementary symmetric polynomials of a ring with three variables
