@@ -451,22 +451,6 @@ vectorToPolynomial(Matrix,TableauList,PolynomialRing) := (vector, stand, R)->(
 ) 
 
 
-testMultiplicity = method()
-testMultiplicity(List) := generatingPermutations->(
-    n := #generatingPermutations#0;
-    p:= partitions n;
-    total:= 0;
-    group:=generatePermutationGroup(generatingPermutations);
-    
-    for i to #p-1 do(
-    	multiplicity:= representationMultiplicity(group,i);
-	stand:= standardTableaux p#i;
-	print("Ambient", p#i,"Dimension",stand#length,"Rank", multiplicity);
-	total = total + multiplicity*stand#length;
-	);
-    print(total, n!/#group);
-    total == n!/#group
-    ) 
 
 ----
 --Change the algorithms that make the list of tableaux according to this findings.

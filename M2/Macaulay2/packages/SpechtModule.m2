@@ -83,6 +83,7 @@ export {"elementarySymmetricPolynomials"}
 export {"powerSumSymmetricPolynomials"}
 
 export {"secondaryInvariants"}
+export {"permutationMatrix"}
 protect \ {row,column}
 ---
 --YoungTableau
@@ -3079,10 +3080,7 @@ multidoc ///
 		p = new Partition from {2,2,1}
 		y = youngTableau(p,{0,3,1,4,2})
 		spechtPolynomial(y,R)
-		spechtPolynomial(y,R,AsExpression=>true)
-    	    	factor oo
-	     		
-
+		factor oo
     Node
     	Key
 	    (spechtPolynomials,Partition, PolynomialRing)
@@ -3110,12 +3108,7 @@ multidoc ///
 		R = QQ[x_0..x_4]
 		p = new Partition from {2,2,1}
 		specht = spechtPolynomials(p,R)
-		specht = spechtPolynomials(p,R,AsExpression => true)
-		
-		
-		specht = applyKeys(specht, y-> youngTableau(p,y));
-		applyValues(specht, f-> factor f)
-    	    	
+			
 
     Node
     	Key
@@ -3273,10 +3266,7 @@ multidoc ///
 		higherSpechtPolynomials(S,R)
 		stan = standardTableaux p
 		higherSpechtPolynomials(S, stan,R)
-		higherSpechtPolynomials(S, stan,R,AsExpression =>true,Robust=>false)
-		p = partitions 10
-		R = QQ[x_0..x_9]
-		higherSpechtPolynomials(p#0,R,AsExpression => true)
+			
 	   Text	
 	    	If only a partition $\lambda$ and a polynomial ring is given then the method calculates $ST(\lambda)$.
 		Then it calculates all polynomials $F_T^S$ such that $S,T \in ST(\lambda)$.
@@ -3486,12 +3476,8 @@ multidoc ///
 	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
 		time seco = secondaryInvariants(genList,R);
 		time seco = secondaryInvariants(genList,R,AsExpression=>true);
-		seco#(new Partition from {2,2,2})#{0,2,1,3,4,5}#0
-		seco
+		seco#(new Partition from {2,2,2})
 		
-		R = QQ[x_0..x_9]
-		genList = {{5,1,8,3,4,0,7,6,2,9},{4,0,1,2,3,7,8,9,5,6}}
-		time seco secondaryInvariants(genList,R,AsExpression => true)
 		
    Node
     	Key
@@ -3541,11 +3527,124 @@ multidoc ///
     	SeeAlso
 	    powerSumSymmetricPolynomials
 ///
+
+-*
+Tests that the representationMultiplicity correctly founds the number of secondary invariants in 
+each irreducible representation 
+
+The test is made for H1 = D_4 subset of S_4 and H2 = S_5 as a subset of S_10.
+*-
+
+TEST ///
+
+
+testMultiplicity = method()
+testMultiplicity List := (listGens) -> (
+    n := #listGens#0;
+    p:= partitions n;
+    total:= 0;
+    charTable := characterTable n;
+    group:=generatePermutationGroup(listGens);
+    for i to #p-1 do(
+    	tal := tally apply (group, g-> conjugacyClass g);
+    	multiplicity:= representationMultiplicity(tal,p#i,charTable);
+    	total = total + multiplicity*hookLengthFormula(p#i);
+    	);
+    	total == n!/#group
+    	)
+listGens = {{0,3,2,1},{1,2,3,0}};    
+assert testMultiplicity(listGens);
+listGens2 = {{5,1,8,3,4,0,7,6,2,9},{4,0,1,2,3,7,8,9,5,6}};    
+assert testMultiplicity(listGens2);
+
+///
+
+
+-*
+Test that the output of the straightening algorithm correctly represents the same polynomial as the input.
+It is done for the Modules index by partitions {3,2} and {2,2,2}, and for all permutations of S_5 and S_6.
+*-
+
+TEST ///
+
+testStraighteningAlgorithm = method()
+testStraighteningAlgorithm(List,TableauList,PolynomialRing):= (perm,standard,R)-> (
+    for i to standard#length-1 do (
+    	perm2 := perm_(flatten entries standard#matrix^{i});
+	polynomial := spechtPolynomial(youngTableau(standard#partition,perm2),R);
+	y:= youngTableau(standard#partition,perm2);
+	--printTableau(y);
+	lineal := straighteningAlgorithm y;
+	ini := 0;
+	suma:=0_R;
+	for term in terms lineal do (
+	    suma = suma + term#1* (spechtPolynomial(term#0,R)); 
+	    );
+	assert (suma === polynomial)
+    )
+)
+
+p = new Partition from {3,2};
+standard = standardTableaux p;
+R := QQ[x_0..x_4];
+perms = permutations 5;
+for perm in perms do testStraighteningAlgorithm(perm,standard,R);
+
+p = new Partition from {2,2,2};
+standard = standardTableaux p;
+R:= QQ[x_0..x_5];
+perms = permutations 6;
+for perm in perms do testStraighteningAlgorithm(perm,standard,R);
+
+
+///
+
+
 end
 
     	
  loadPackage("SpechtModule",Reload => true)
  installPackage(SpechtModule)
+ check SpechtModule
+charTable = characterTable 5
+
+p = new Partition from {3,2}
+
+stand  = standardTableaux p 
+
+y= youngTableau(p,{2,3,4,1,0}) 
+
+sortColumnsTableau y
+
+y
+
+garnirElement y
+
+straighteningAlgorithm y
+
+M = matrixRepresentation ({1,2,3,4,0},stand)
+
+p2 = conjugacyClass {1,2,3,4,0}
+
+charTable_(p,p2)
+
+
+R = QQ[x_1..x_3]
+
+G = {{0,2,1}}
+
+
+G = generatePermutationGroup G
+
+secondaryInvariants(G,R,AsExpression => true)
+
+higherSpechtPolynomials(R,AsExpression => true)
+
+R = QQ[x_1..x_6]
+genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
+time seco1 = secondaryInvariants(genList,R);
+time seco2 = secondaryInvariants(genList,R,AsExpression=>true);
+		
  
  loadPackage("InvariantRing",Reload => true)
  genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
@@ -3553,6 +3652,9 @@ end
  H = generateGroup(gen,QQ)
  P = elementarySymmetricPolynomials R
  time secondaryInvariants (P,H)
+
+seco
+
 
 K=toField(QQ[a]/(a^2+a+1));
 R=K[x_1,x_2];

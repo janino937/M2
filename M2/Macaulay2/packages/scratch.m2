@@ -64,32 +64,6 @@ loadPackage("SpechtModule",Reload => true)
 --loadPackage("SpechtPolynomials",Reload => true)
 
 
-characterTable 5
-
-p = new Partition from {3,2}
-
-stand  = standardTableaux p 
-
-y= youngTableau(p,{2,3,4,1,0}) 
-
-sortColumnsTableau y
-
-garnirElement y
-
-straighteningAlgorithm y
-
-M = matrixRepresentation ({1,2,3,4,0},stand)
-
-R = QQ[x_1..x_3]
-
-G = {{0,2,1}}
-
-
-G = generatePermutationGroup G
-
-secondaryInvariants(G,R)
-
-higherSpechtPolynomials(R)
 
 
 

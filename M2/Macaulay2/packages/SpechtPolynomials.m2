@@ -291,29 +291,6 @@ monomialGenerator (YoungTableau, YoungTableau, PolynomialRing) :=  (tableauS, ta
 
 
 
-testMatrixRepresentation = method()
-testMatrixRepresentation(List,TableauList,PolynomialRing):= (perm,standard,R)-> (
-    
-    for i to standard#length-1 do (
-    	perm2 := perm_(flatten entries standard#matrix^{i});
-    	
-	polynomial := value (generateSpechtPolynomial(youngTableau(standard#partition,perm2),R));
-	y:= youngTableau(standard#partition,perm2);
-	--printTableau(y);
-	lineal := straighteningAlgorithm y;
-	ini := 0;
-	suma:=0_R;
-	for j to #lineal -1 do (
-	    suma = suma + lineal#j#1*value (generateSpechtPolynomial(lineal#j#0,R)); 
-	    );
-	if (suma != polynomial) then (
-	    print (perm2);
-	    printTableau(getTableau(standard,i));
-	    error ("Straightening Algorithm is not calculating the correct polynomial");
-	    )
-	);
-    	true
-    )
 
 
 testStraighteningAlgorithm = method()
