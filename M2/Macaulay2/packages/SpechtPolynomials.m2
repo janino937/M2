@@ -43,7 +43,7 @@ permutePolynomial(List,PolynomialRing) := (poly,perm)->(
 -----
 generateSpechtPolynomial=method()
 generateSpechtPolynomial(YoungTableau,PolynomialRing):=(tableau, R)->(
-    numCols:= tableau#partition#0;
+     numCols:= tableau#partition#0;
     polyn := 1_R;
     for i to numCols-1 do(
     	col:= getColumn(tableau,i);

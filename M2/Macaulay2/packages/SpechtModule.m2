@@ -84,6 +84,7 @@ export {"powerSumSymmetricPolynomials"}
 
 export {"secondaryInvariants"}
 export {"permutationMatrix"}
+export {"sortList"}
 protect \ {row,column}
 ---
 --YoungTableau
@@ -1245,7 +1246,7 @@ rsortList List := l -> (
     index := hashTable apply (#sortedList,i-> sortedList#i => i);
     permutation:= apply(l,a->index#a);
     --error "test";
-    (l,permutationSign(permutation))
+    (sortedList,permutationSign(permutation))
     )
 
 sortList = method()
@@ -1254,7 +1255,7 @@ sortList List := l -> (
     index := hashTable apply (#sortedList,i-> sortedList#i => i);
     permutation:= apply(l,a->index#a);
     --error "test";
-    (l,permutationSign(permutation))
+    (sortedList,permutationSign(permutation))
     )
 
 
@@ -1466,7 +1467,8 @@ higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R
     if(o.Robust) then (
 	monomial := indexMonomial(S,T,R);
     	sym:= sum (rowStabilizer T, sigma-> permutePolynomial(sigma,monomial));
-    	polynomial:= sum (columnStabilizer T, tau -> permutationSign(tau)*permutePolynomial(tau,sym))*hookLengthFormula(S#partition)//(numgens R)!;
+	sym = sym//leadCoefficient sym;
+    	polynomial:= sum (columnStabilizer T, tau -> permutationSign(tau)*permutePolynomial(tau,sym));
 	if o.AsExpression then ans = factor polynomial else ans = polynomial 
     	)
     else (
@@ -1481,7 +1483,8 @@ higherSpechtPolynomial(YoungTableau, YoungTableau, PolynomialRing) := o-> (S,T,R
 		    lastNonZero:= 0;
 	 	    if (firstZero === null) then lastNonZero = #sortedList-1 else lastNonZero = firstZero -1;
 		    partition:= new Partition from sortedList_{0..lastNonZero};
-		    schurPolynomial(T_i,partition,R,AsExpression => o.AsExpression))))
+		    sign*schurPolynomial(T_i,partition,R,AsExpression => o.AsExpression)
+		    )))
 	);
     ans
    )
@@ -3584,6 +3587,8 @@ testStraighteningAlgorithm(List,TableauList,PolynomialRing):= (perm,standard,R)-
     )
 )
 
+
+
 p = new Partition from {3,2};
 standard = standardTableaux p;
 R := QQ[x_0..x_4];
@@ -3599,7 +3604,36 @@ for perm in perms do testStraighteningAlgorithm(perm,standard,R);
 
 ///
 
+-*
+Test whether the algorithm proposed for calculating higher Specht polynomials coincides with the 
+standard method that is closest to the definition of higher Specht polynomials. It also checks wheter the outputs
+as expressions coincide with the normal outputs of this method
+*-
 
+TEST /// 
+
+n:=6;
+R := QQ[x_1..x_n];
+
+
+specht0 := higherSpechtPolynomials(R,Robust=> true, AsExpression => false);
+specht1 := higherSpechtPolynomials(R,Robust=>true, AsExpression => true);
+specht2 := higherSpechtPolynomials(R,Robust=>false, AsExpression => false);
+specht3 := higherSpechtPolynomials(R,Robust=>false, AsExpression => true);
+
+
+for p in keys specht0 do (
+    for S in keys (specht0#p) do (
+        for T in keys(specht0#p#S) do (
+	    --print (p,S,T);
+	    assert (specht0#p#S#T == value specht1#p#S#T);
+	     assert (specht0#p#S#T == specht2#p#S#T);
+	     assert (specht0#p#S#T == value specht3#p#S#T);
+	    );
+	);
+    );
+
+///
 end
 
     	
@@ -3608,11 +3642,12 @@ end
  check SpechtModule
 charTable = characterTable 5
 
-p = new Partition from {3,2}
+p = new Partition from {2,2,1}
 
-stand  = standardTableaux p 
+standard = standardTableaux p 
 
-y= youngTableau(p,{2,3,4,1,0}) 
+
+y= youngTableau(p,{1,0,3,2,4}) 
 
 sortColumnsTableau y
 
@@ -3622,36 +3657,47 @@ garnirElement y
 
 straighteningAlgorithm y
 
-M = matrixRepresentation ({1,2,3,4,0},stand)
+M = matrixRepresentation ({1,2,3,4,0},standard)
 
 p2 = conjugacyClass {1,2,3,4,0}
 
 charTable_(p,p2)
 
 
-R = QQ[x_1..x_3]
+
 
 G = {{0,2,1}}
+
+S = youngTableau(lambda,{0,2,1,4,3}); T = youngTableau(lambda,{0,1,2,3,4}); R = QQ[x_1..x_5];
+(S,T)
+R = QQ[x_1..x_5]
+
+higherSpechtPolynomial(S,T,R)
+
+higherSpechtPolynomial(S,T,R,AsExpression => true)
 
 
 G = generatePermutationGroup G
 
 secondaryInvariants(G,R,AsExpression => true)
 
-higherSpechtPolynomials(R,AsExpression => true)
+R = QQ[x_1..x_3]
+higherSpechtPolynomials(R,Robust => true)
 
-R = QQ[x_1..x_6]
-genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
+R = QQ[x_1..x_6]; genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}};
 time seco1 = secondaryInvariants(genList,R);
 time seco2 = secondaryInvariants(genList,R,AsExpression=>true);
-		
+
+lambda = new Partition from {3,3};
+seco2#lambda#{0,2,4,1,3,5}
  
- loadPackage("InvariantRing",Reload => true)
- genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
- gen = apply (genList, p-> permutationMatrix p)
- H = generateGroup(gen,QQ)
- P = elementarySymmetricPolynomials R
- time secondaryInvariants (P,H)
+ loadPackage("InvariantRing",Reload => true);
+ genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}};
+ gen = apply (genList, p-> permutationMatrix p);
+ H = generateGroup(gen,QQ);
+ P = elementarySymmetricPolynomials R;
+ time secondaryInvariants (P,H);
+ 
 
 seco
 
