@@ -1,13 +1,10 @@
 -- -*- coding: utf-8 -*-
 newPackage(
         "SpechtModule",
-        Version => "1.5", 
-        Date => "May 17, 2017",
+        Version => "1.0", 
+        Date => "October 21, 2019",
         Authors => {{Name => "Jonathan Niño", 
                   Email => "ja.nino937@uniandes.edu.co", 
-                  HomePage => "http://www.uniandes.edu.co"},
-                  {Name => "Juanita Duque", 
-                  Email => "a.duque10@uniandes.edu.co", 
                   HomePage => "http://www.uniandes.edu.co"}},
         Headline => "Methods for the Efficient Compution of Invariants for Permutation Groups.",
         DebuggingMode => true
@@ -47,8 +44,6 @@ export {"columnStabilizer"}
 
 export {"rowStabilizer"}
 
-export {"SchurPolynomial"}
-
 export {"garnirElement"}
 export {"sortColumnsTableau"}
 export {"cardinalityOfConjugacyClass"}
@@ -78,13 +73,15 @@ export {"generalizedVandermondeMatrix"}
 export {"Robust","AsExpression"}
 export {"generatePermutationGroup"}
 export {"representationMultiplicity"}
+export {"innerProduct"}
+
 
 export {"elementarySymmetricPolynomials"}
 export {"powerSumSymmetricPolynomials"}
 
 export {"secondaryInvariants"}
 export {"permutationMatrix"}
-export {"sortList"}
+
 protect \ {row,column}
 ---
 --YoungTableau
@@ -1705,6 +1702,25 @@ multidoc ///
 		charTable_(a,b)
  	SeeAlso
  	    characterTable
+    Node
+    	Key
+	    (innerProduct,MutableMatrix,MutableMatrix)
+	Headline
+	    calculates the inner product for the characters of S_n
+	Usage
+	    innerProduct(X,Y)
+	Inputs
+	    X:MutableMatrix
+	    	a matrix row that represents a character of S_n
+	    Y:MutableMatrix
+	    	a matrix row that represents a character of S_n
+	Outputs
+	    :ZZ
+	    	the inner product of the two characters X and Y
+	Description
+	    Example
+	    	charTable = 
+		charTable = 
 	    
     Node
     	Key
@@ -3606,7 +3622,7 @@ for perm in perms do testStraighteningAlgorithm(perm,standard,R);
 
 -*
 Test whether the algorithm proposed for calculating higher Specht polynomials coincides with the 
-standard method that is closest to the definition of higher Specht polynomials. It also checks wheter the outputs
+standard method that is closest to the definition of higher Specht polynomials. It also checks whether the outputs
 as expressions coincide with the normal outputs of this method
 *-
 
@@ -3634,12 +3650,70 @@ for p in keys specht0 do (
     );
 
 ///
+
+
+-*
+Tests that the rows in the character table are 
+orthogonal with respect to the inner product of characters.
+*-
+
+TEST ///
+
+for n from 1 to 10 do (
+    charTable := characterTable n;
+    for i to charTable#length-1 do (
+       	assert ( innerProduct(n,(charTable#values)^{i},(charTable#values)^{i})== 1 );
+	for j to i-1 do (	
+	    assert (innerProduct(n,(charTable#values)^{i},(charTable#values)^{j}) == 0);
+    	    );
+	);
+    );
+///
+
+
+
+-*
+Test that the secondary invariants are effectively invariant under the action of the given ring.
+*-
+
+TEST ///
+
+testInvariance = method()
+testInvariance (List,HashTable):= (lista,hashTab)->  (
+    for k in values (hashTab) do (
+	assert testInvariance(lista,k);
+    	);
+    true
+    )
+
+testInvariance (List,RingElement):= (gens,s) -> (
+    for g in gens do (
+	assert (permutePolynomial(g,s) == s);
+	);
+    true
+    )
+
+testInvariance (List,List):= (gens,l) -> (
+    assert (#l == 0);
+    true
+    )
+
+listGens = {{0,3,2,1},{1,2,3,0}};    
+R = QQ[x_0..x_3];
+testInvariance(listGens,secondaryInvariants(listGens,R));
+
+R = QQ[x_1..x_6];
+listGens = {{1,2,3,0,5,4},{0,4,2,5,1,3}}		
+testInvariance(listGens,secondaryInvariants(listGens,R));
+
+
+///
 end
 
     	
- loadPackage("SpechtModule",Reload => true)
- installPackage(SpechtModule)
- check SpechtModule
+loadPackage("SpechtModule",Reload => true)
+installPackage(SpechtModule)
+check SpechtModule
 charTable = characterTable 5
 
 p = new Partition from {2,2,1}
@@ -3709,3 +3783,4 @@ B=sub(matrix{{0,1},{1,0}},K);
 D6={A^0,A,A^2,B,A*B,A^2*B};
 P={x_1^3+x_2^3,(x_1^3*x_2^3)};
 secondaryInvariants(P,D6)
+
