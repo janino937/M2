@@ -83,31 +83,10 @@ export {"secondaryInvariants"}
 export {"permutationMatrix"}
 
 protect \ {row,column}
----
---YoungTableau
----
-
--- YoungTableau: A new type that efficiently represents a filling of a Young Tableau.
--- The implementation is done in top of the type MutableHashTables.
--- Its local variables are
---     Partition: The partition that gives the shape of the graph. For example the partition 
---{1,2,2} of 5 would give rise to a Young Tableau whows first rows are of length 2 and
--- the last if of length 1.
---    Index: An object for implementing walks on the Young Tableau. The index consist of
---   three numbers (r,c,i) where r represents the row of the element, c corresponds to the
---  the column and i corresponds to the position of the element if the Tableau is read
---  by rows.
--- The numbers are saved as elements in the hast table whos keys are given by the number i
--- in the index above.     
----   
-
 
 
 CharacterTable = new Type of MutableHashTable
 
---------------------
--- Constructors
---------------------
 characterTable = method(TypicalValue => CharacterTable)
 characterTable ZZ := n -> (
     
@@ -126,18 +105,14 @@ characterTable ZZ := n -> (
     	charTable#degree = i;
     	charTable#values = mutableMatrix(ZZ,charTable#length,charTable#length);
     	charTables#i = charTable;
-	--print("ok");
 	y:= partitions(i);
 	for j  to #y-1 do (
 	    
 	    for k from j to #y-1 do (
 		val:= calculateNumberOfEquals(y#(j),y#(k),charTables);
-		--print("ok");
 		(charTables#i)_(j,k)=val;
 	    );
 	);
-        --print("Table",i);
-    	--print((charTables#i)#values);	
     ); 
    charTable := reduceCharacterTable(charTables#n);
    charTable
@@ -163,17 +138,6 @@ CharacterTable_Sequence:=(charTable,seq)-> (
     charTable#values_(a,b)
     )
 
--- Method to modify the entries of the character table.
--- Inputs:
---     a:ZZ or Partition
---    	the index of the row
---     b:ZZ or Partition
---    	  the index of the column
---     val:ZZ
---       the value to put in the method
---     charTable:CharacterTable
---    	 the character table
-
 CharacterTable_Sequence = (charTable,seq,e)-> (
     if #seq != 2 then error "expected a sequence of length 2";
     (a,b) := seq;
@@ -192,20 +156,6 @@ CharacterTable_Sequence = (charTable,seq,e)-> (
 
 
 
--- This method calculates the inner product of characters
--- The characters are presented as rows of the character table
--- To calculate the inner product it is necessary to calculate the size of the conjugaci classes of S_n
--- Inputs
---    n:ZZ
---    	  The degree of the symmetric group. It is used to calculate the partitions of n
---    C:MutableMatrix
---    	  The firts character. It is represented as a mutable matrix with a single row.
---    X:MutableMatrix
---    	  THe second character.
--- Outputs
---    :ZZ
---    	The inner product of characters C and X.	  
-
 innerProduct = method(TypicalValue => ZZ)
 innerProduct(ZZ,MutableMatrix,MutableMatrix) := (n,C,X) -> (
     prod:=0;
@@ -220,19 +170,6 @@ net CharacterTable := charTable -> (
     )
 
 
--- This method applies Gram-Schmidt to the table of permutation characters.
--- This method uses the fact that a permutation module consists of a direct sum
--- of a copy of the irreducible Specht module S^\lambda and some copies of
--- Specht modules S^\mu such that \mu> \lambda in lexicographical order
--- Finally, since the irreducible characters are an orthonormal basis of the space of
--- characters of S_n, by applying Gram-Schmitd in lexicograhical order the character table
--- is obtained.
--- Inputs
---    charTable:CharacterTable
---    	  The character table containing the characters of the permutation modules of S_n
--- Outputs
---    :CharacterTable
---    	Returns the character table of irreducible characters of S_n.	  
 reduceCharacterTable = method(TypicalValue => CharacterTable)
 reduceCharacterTable CharacterTable  := charTable -> (
     for i to charTable#length-1 do(
@@ -253,16 +190,6 @@ reduceCharacterTable CharacterTable  := charTable -> (
 
 
 
--- This method calculates recursively the entry of the character of the permutation module M^\lambda (partition 1) of
--- the conjugacy class K index by the partition \mu (partition2).
--- Inputs
---    partition1:Partition
---    	  A partition that indexes the character M^\lambda
---    partition2:Partition
---    	  A partition that indexes the conjugacy class K    	
--- Outputs
---    :ZZ
---      The value of the permutation character  
 calculateNumberOfEquals = method(TypicalValue => ZZ )
 calculateNumberOfEquals(Partition, Partition,MutableHashTable):= (partition1, partition2,charTables)->(
     
@@ -282,12 +209,8 @@ calculateNumberOfEquals(Partition, Partition,MutableHashTable):= (partition1, pa
 		    then (z= z+ 1;)
 		else(
 		    
-		    --print(newPartition);
-		    --print(partition2);
 		    currentTableNumber:=sum(toList newPartition);
 		    z = z+(charTables#currentTableNumber)_(newPartition,partition2);
-		    --print("ok");
-		    --print(z);
 		);
 		
 	    );
@@ -335,10 +258,6 @@ youngTableau(Partition,MutableList):= (p,L)->(
 
 
 
-------
--- Gives a representation of the Young Tableau as a list of the rows in the
--- diagram.
-------
 tableauToList = method(TypicalValue => List)
 tableauToList(YoungTableau):= (tableau)->(
     
@@ -357,11 +276,6 @@ listToTableau List := l -> (
     youngTableau(parti,flatten l)
     )
 
-------
--- Gets the element in the position (i,j) of the young diagram.
--- i: row
--- j: column 
-------
 
 YoungTableau_Sequence:= (tableau,pos) -> (
     if #pos != 2 then error "expected a sequence of length two"
@@ -385,11 +299,6 @@ else(
 )
 
 
-------
--- Sets the element in the position (i,j) of the young diagram.
--- i: row
--- j: column 
-------
 YoungTableau_Sequence = (tableau,pos,e)->(
     (i,j):=pos;
     if(i < #(tableau#partition)) then (
@@ -405,9 +314,6 @@ YoungTableau_Sequence = (tableau,pos,e)->(
     
     )
 
-------
--- Gives a list of all the elements in the row i 
-------
 YoungTableau^ZZ := (tableau,i) -> (
     ans:=0;
     if i < #(tableau#partition) then (
@@ -418,9 +324,6 @@ YoungTableau^ZZ := (tableau,i) -> (
     ans
     )
 
-------
--- Gives a list of all the elements in the column i 
-------
 YoungTableau_ZZ := (tableau,i) -> (
     ans:= 0;
     if -1< i and i < tableau#partition#0 then (
@@ -449,10 +352,6 @@ numrows YoungTableau := tableau -> #tableau#partition
 
 size YoungTableau := tableau -> sum toList tableau#partition
 
-------
--- A method to give a graphical representation of a Young diagram. This method saves the
--- diagram in a mutable matrix and then prints the matrix. 
-------
 net YoungTableau := tableau ->(
     l := tableauToList tableau;
     corner := #(tableau#partition) ;
@@ -474,26 +373,6 @@ net YoungTableau := tableau ->(
 )
 
 
-
-------
--- TableauList
-------
-
-   
---  This object represents a list of young tableaus. The tableaus are store in an d times n
--- mutable matrix where d is a bound for the numbers of tableaus and n is the size of the
--- Its variables are
--- Matrix: The matrix that stores the tableau
--- Partition: The partition that gives the shape of the Young diagram
--- Length: The numbers of Young Tableus store in the list.
-
---An advantege of this storages methods is that the tableau is represented as the permutation
--- that would be necessary to get that tableau.
-
--- This is useful to calculate things like the Specht polynomials.
-
-
--- Constructors
 
 TableauList = new Type of MutableHashTable
 tableauList = method(TypicalValue => TableauList)
@@ -517,20 +396,12 @@ lista
 
 
 
--- Methods
-
-------
--- Prints the young diagrams that are store in the list.
-------
 
 toListOfTableaux = method()
 toListOfTableaux TableauList := tableaux -> (
     apply(tableaux#length,i-> youngTableau(tableaux#partition,flatten entries tableaux#matrix^{i}))
     )
 
-------
--- Adds a tableau to the list    .
-------
 addTableau = method(TypicalValue => ZZ)
 addTableau(TableauList,YoungTableau):= (tableaux,tableau) ->(
    scan(0..sum(toList tableau#partition)-1, i-> (tableaux#matrix)_(tableaux#length,i) = tableau#values#i);
@@ -548,10 +419,6 @@ net TableauList := tableaux -> (
     net toListOfTableaux tableaux
     )
 
-------
--- Retrieves a tableau from the list
-------
-
 TableauList_ZZ := (tableaux,n) -> (
      youngTableau(tableaux#partition,flatten entries tableaux#matrix^{n})
     ) 
@@ -559,13 +426,6 @@ TableauList_ZZ := (tableaux,n) -> (
 getRow = method()
 getRow (TableauList,ZZ) := (tableaux,i)-> flatten entries tableaux#matrix^{i}
 
--- Methods
-
-------
--- Given a tableau with an index, it gets the element thats to the right of the element
--- that the index is pointing to. In case there is no such element (for example when the
--- index points to first element in a row, it return 0)
-------
 previousElementInRow = method(TypicalValue => ZZ)
 previousElementInRow(YoungTableau,HashTable):= (tableau,ind)->(
     
@@ -574,11 +434,6 @@ previousElementInRow(YoungTableau,HashTable):= (tableau,ind)->(
     e
 )
 
-------
--- Given a tableau with an index, it gets the element thats to above of the element
--- that the index is pointing to. In case there is no such element (for example when the
--- index points to an element in the first row, it return 0).
-------
 previousElementInColumn = method(TypicalValue => ZZ)
 previousElementInColumn(YoungTableau,HashTable):= (tableau,ind)->(
     e:=-1;
@@ -598,17 +453,6 @@ nextIndex (HashTable,Partition)  := (ind,p)->(
     ind
 )
 
-------
--- This method is used in the method that generates the list of tableaux. Given
--- a tableau which has been partially filled with numbers, this method calculates
--- the maximum number which could be put in the next empty slot, so that a valid standard
--- tableau with those numbers exists. 
-
--- Specifically, this method checks the number of slots that havent been filled in a column.
--- and sums the number of elements which have already been filled in that row.
-
- 
-------
 maxPossibleNumber = method(TypicalValue => ZZ)
 maxPossibleNumber(YoungTableau,HashTable):= (tableau,ind) ->(
   s:=(size tableau)-(tableau#partition)#(ind#row);
@@ -618,12 +462,6 @@ maxPossibleNumber(YoungTableau,HashTable):= (tableau,ind) ->(
 
 
 
------
--- Method that generates the list of all tabloids of a given partition.
--- A filling of young diagram is a tableau if it is increasing in rows.
--- The number of tableaux is given by the multinomial coefficient associated to the partition
--- nC(p_1,p_2,..,p_k).
------
 tabloids = method(TypicalValue => TableauList)
 tabloids(Partition) := p->(
     size:= multinomial p;
@@ -638,16 +476,6 @@ tabloids(Partition) := p->(
 )
 
 
------
--- A method that calculates the tableaus recursively. In each step the algorith tries filling
--- the tableau with a number in the list of numbers. Then it calls the method again to fill
--- next slot in the tableau this time removing the element that was previoulsy added to the
--- tableau.
--- In this way the method effectively goes through all posible fillings of the tableau.
--- TODO find a way to put the list of numbers and the tableau as a global variable.
------
-
---- No need to create a new tableau in each step, just use parameter accumulation
 recursiveTabloids = method(TypicalValue => TableauList)
 
 recursiveTabloids(List,YoungTableau , TableauList,HashTable):= (numbers, tableau, tableaux,ind) -> (
@@ -657,11 +485,8 @@ recursiveTabloids(List,YoungTableau , TableauList,HashTable):= (numbers, tableau
         
             if(numbers#i>previousElementInRow(tableau,ind)) then
             (
-                --tableauNuevo := youngTableau(tableau);
-		
 		tableau#values#(ind#index) = numbers#i;
 		numbers2 := delete(numbers#i,numbers);
-		--print net tableau;
                 if newInd#index == sum toList tableau#partition then addTableau(tableaux,tableau)
 		else recursiveTabloids(numbers2,tableau,tableaux,newInd);
             );
@@ -671,33 +496,17 @@ recursiveTabloids(List,YoungTableau , TableauList,HashTable):= (numbers, tableau
 
 
 
-------
--- This method is used in the method that generates the list of standard tableaux. Given
--- a tableau which has been partially filled with numbers, this method calculates
--- the maximum number which could be put in the next empty slot, so that a valid standard
--- tableau with those numbers exists. 
-
--- Specifically it counts the numbers of elements in the subdiagram with positions (i,j)
--- Since the element put at this position must be the smallest of all elements in ths diagram.
--- This gives a very good bound on the elements that can go in here.
-------
 maxPossibleNumberStandard = method(TypicalValue => ZZ)
 maxPossibleNumberStandard(YoungTableau,HashTable):= (tableau,ind) ->(
   s:=sum(toList tableau#partition);
   for i from ind#row to #(tableau#partition)-1 when (tableau#partition#i > ind#column ) do (    
      s = s - (tableau#partition#i)+ind#column;
   );
-  --s = s+1;
   s
 )
 
 
 
------
--- Method that generates the list of all standard tableaux of a given partition.
--- A filling of young diagram is a tableau if it is increasing in rows and decrasing in
--- columns
------
 standardTableaux = method(TypicalValue => TableauList)
 standardTableaux(Partition) := p->(
     size:=sum(toList p);
@@ -711,14 +520,6 @@ standardTableaux(Partition) := p->(
     tableaux
 )
 
------
--- A method that calculates the tableaus recursively. In each step the algorith tries filling
--- the tableau with a number in the list of numbers. Then it calls the method again to fill
--- next slot in the tableau this time removing the element that was previoulsy added to the
--- tableau.
--- In this way the method effectively goes through all posible fillings of the tableau.
--- TODO find a way to put the list of numbers and the tableau as a global variable.
------
 recursiveStandardTableaux = method(TypicalValue => TableauList)
 recursiveStandardTableaux(List,YoungTableau,TableauList,HashTable):= (numbers, tableau, tableaux,ind) -> (
     maximum:= maxPossibleNumberStandard(tableau,ind);
@@ -727,7 +528,6 @@ recursiveStandardTableaux(List,YoungTableau,TableauList,HashTable):= (numbers, t
         
             if(numbers#i>previousElementInRow(tableau,ind) and numbers#i>previousElementInColumn(tableau,ind) ) then
             (
-                --tableauNuevo := youngTableau(tableau);
 		tableau#values#(ind#index)= numbers#i;
 		numbers2 := delete(numbers#i,numbers);
                 if newInd#index == sum toList tableau#partition then addTableau(tableaux,tableau) 
@@ -743,7 +543,6 @@ maxPossibleNumbersSemistandard(YoungTableau,HashTable,ZZ):= (tableau,ind,n)-> (
     
   s:=n;
   s = s - #(tableau_(ind#column))+ind#row;
-  --s = s+1;
   s
     )
 
@@ -760,21 +559,12 @@ semistandardTableaux(Partition,ZZ) := (p,n)->(
     tableaux
 )
 
------y
--- A method that calculates the tableaus recursively. In each step the algorith tries filling
--- the tableau with a number in the list of numbers. Then it calls the method again to fill
--- next slot in the tableau this time removing the element that was previoulsy added to the
--- tableau.
--- In this way the method effectively goes through all posible fillings of the tableau.
--- TODO find a way to put the list of numbers and the tableau as a global variable.
------
 recursiveSemistandardTableaux = method(TypicalValue => TableauList)
 recursiveSemistandardTableaux(ZZ,YoungTableau,TableauList,HashTable):= (maxNumber, tableau, tableaux,ind) -> (
     newInd:= nextIndex (ind,tableau#partition);
     maximum:= maxPossibleNumbersSemistandard(tableau,ind,maxNumber);
     for i from max(previousElementInRow(tableau,ind),0 ,previousElementInColumn(tableau,ind)+1) to maximum do(   
 	tableau#values#(ind#index)= i;
-	-- print(tableauNuevo#index);
 	if newInd#index == sum toList tableau#partition then tableaux = addTableau(tableaux,tableau)
 	    else recursiveSemistandardTableaux(maxNumber,tableau,tableaux,newInd);
         );
@@ -802,9 +592,6 @@ wordToTableau (Partition,List) := (p,word)->(
     )
     
 
------
--- This method calculates i(S) for a given tableau
------
 indexTableau = method()
 indexTableau(YoungTableau):= tableau -> (
     
@@ -826,47 +613,26 @@ indexTableau(YoungTableau):= tableau -> (
 
 
 
------
--- Method that generates the list of all row permutations of a tableau that result in no repeated number
--- in any column.
--- An index tableau can have repetitions of the numbers in its slots.
--- The method calculates all the different tableaus that can be obtained by permuting the
--- elements in the rows, in such a way that all elements in the columns are different.
------
 rowPermutationTableaux = method()
 rowPermutationTableaux(YoungTableau) := (tableau)->(
-    --Assuming all tableaus have size greater or equal to one.
     size:=sum(toList tableau#partition);	
     numbers:= apply (#(tableau#partition), i -> new MutableHashTable from tally tableau^i);
     maxTableaux:=product(numbers, tal->  multinomial( tally values tal));
-    --scan (numbers, i-> print new HashTable from i);
-    --print maxTableaux;
     tableaux :=tableauList(tableau#partition,maxTableaux);
     newTableau:= youngTableau(tableau#partition,toList ( size:(-1) ) );
-    --setIndex({0,0,0},newTableau);
     recursiveRowPermutationTableaux((#tableau#partition-1,0),numbers,newTableau,tableaux);
     toListOfTableaux tableaux
 )
 
------
--- A method that calculates the tableaus recursively. In each step the algorithm tries filling
--- the tableau with a number in the list of numbers. Then it calls the method again to fill
--- next slot in the tableau this time removing the element that was previoulsy added to the
--- tableau.
--- In this way the method effectively goes through all posible fillings of the tableau.
--- TODO find a way to put the list of numbers and the tableau as a global variable.
------
 recursiveRowPermutationTableaux = method(TypicalValue => TableauList)
 recursiveRowPermutationTableaux(Sequence, List,YoungTableau,TableauList):= (pos,numbers, tableau, tableaux) -> (
     element:=0; 
     (row,col):= pos;
     nextPos := (0,0);
     if col + 1 == tableau#partition#row then nextPos = (row-1,0) else nextPos = (row,col+1);
-    --print nextPos;
     for j in keys(numbers#row) do (
 	if not any (tableau_col, i-> i == j) then (
 	    tableau_(row,col)=j;
-	   -- print net tableau;
 	    numbers#row#j = numbers#row#j-1;
 	    if(numbers#row#j == 0 ) then remove (numbers#row, j);
 	    if nextPos#0 == -1 then addTableau(tableaux,tableau) else recursiveRowPermutationTableaux(nextPos,numbers,tableau,tableaux);
@@ -878,9 +644,6 @@ recursiveRowPermutationTableaux(Sequence, List,YoungTableau,TableauList):= (pos,
 
 
 
------
--- This method calculates the hook length formula for partitions 
------
 hookLengthFormula = method(TypicalValue =>ZZ)
 hookLengthFormula Partition := parti -> (
     
@@ -932,9 +695,6 @@ conjugacyClass List := perm -> (
     )
 
 
------
--- Methods for calculating the multinomial 
------
 multinomial = method(TypicalValue => ZZ)
 multinomial(Tally) := (p)->(
     n:= sum p;
@@ -954,10 +714,6 @@ multinomial Partition := p -> (
  
 
 
------
--- This method extends the permutations from a subset of (1,...n) to all the permutations of
--- (1,...n) by fixing all letters that are not in the subset 
------
 extendPermutation = method(TypicalValue => List)
 extendPermutation(ZZ, List) := (n,per) -> (
     numbers := sort(per);
@@ -983,17 +739,11 @@ extendedPermutations(ZZ,List ):= (n,numbers) -> (
     )
 
 
------
--- Direct product 
------
 directProductOfPermutations = method(TypicalValue =>List)
 directProductOfPermutations(List,List):= (A,B) ->(
    flatten apply(A, a->apply(B,b->a_b))   
 )
 
------
--- This method codes 
------
 columnStabilizer=method(TypicalValue => List)
 columnStabilizer(YoungTableau):= (tableau) ->(
     n:= sum toList tableau#partition;
@@ -1004,9 +754,6 @@ columnStabilizer(YoungTableau):= (tableau) ->(
     stab
 )
 
------
--- This method codes 
------
 rowStabilizer=method(TypicalValue => List)
 
 rowStabilizer(YoungTableau):= (tableau) ->(
@@ -1034,17 +781,6 @@ permutationSign List := p -> (
 
 
 
-----
--- Garnir elements:
-----
-
---- 
---Given two list that represent two columns with a row descent, this method calculate 
--- all of the permutations that appear in the associated Garnir element. This turn out to be
--- in bijection with n-combinations of n+m letters.
-
--- The algorithm assumes that the lists are in ascending order.
----
 
 
 combinations = method()
@@ -1092,10 +828,6 @@ ZZ * SpechtModuleElement := (c,element) ->(
 
 
 
---first SpechtModuleElement := A -> new SpechtModuleTerm from {first keys(A),first values(A)}
-
---last SpechtModuleElement := A -> new SpechtModuleTerm from {last keys(A),last values(A)}
-
 trim SpechtModuleElement := A -> scan (keys(A#values), tabloid -> if A#tabloid == 0 then remove (A#values,tabloid))
 
 
@@ -1131,7 +863,6 @@ net SpechtModuleElement := A -> (
     for t in drop(tabloids,1)  do (
 	if A#values#(toList t#values) >0 then netElement = netElement | " + " | netTerm (t,A#values#(toList t#values))
 	else if A#values#(toList t#values) < 0 then netElement = netElement | " - " | netTerm (t,-(A#values#(toList t#values)));
-	--print netElement;
 	);
     );
     netElement
@@ -1144,10 +875,7 @@ straighteningAlgorithm(SpechtModuleElement) := (element)->(
     while #notStandard != 0  do( 
 	notStandard = first notStandard;
 	garnir:= garnirElement(notStandard);
-	--print net (notStandard,garnir);
-	--error "Stop";
 	element = element - garnir;
-	--print net element;
 	notStandard = select(1, terms element, t-> firstRowDescent(t#0) > (-1,-1)); 	
 	); 
     element 
@@ -1174,11 +902,8 @@ garnirElement(YoungTableau,ZZ,ZZ,ZZ):= (tableau,coef,a,b)-> (
 	if (a,b) >= (0,0) then ( 
     	conju:= conjugate tableau#partition;
     	combs:= combinations(conju#b+1,a+1);
-    	--print(a,b);
-	AB:= (tableau_(b+1))_{0..a}|(tableau_(b))_{a..conju#b-1};
-     	--print(AB);
-	ans = apply (combs,comb->(
-	    --print(comb);
+    	AB:= (tableau_(b+1))_{0..a}|(tableau_(b))_{a..conju#b-1};
+     	ans = apply (combs,comb->(
 	    newTableau:= youngTableau tableau;
 	    for j to a do(
 		newTableau_(j,b+1)= AB#(comb#j);
@@ -1186,15 +911,11 @@ garnirElement(YoungTableau,ZZ,ZZ,ZZ):= (tableau,coef,a,b)-> (
 	    for j from a+1 to conju#b do (  
 	    	newTableau_(j-1,b) = AB#(comb#j);
 		);
-	    --print net newTableau;
 	    sign:=sortColumnsTableau(newTableau);
-	    --print net newTableau;
 	    spechtModuleElement (newTableau, (coef) *sign*permutationSign(conjugacyClass(comb)))
       	    ));
     	
 	);
-    --error "Stop";
-    --print(ans);
     sum ans	
 	)
     )
@@ -1233,7 +954,6 @@ sortColumn (YoungTableau,ZZ) := (tableau,i) -> (
     scan (#col, j->(tableau_(j,i)= sortedCol#j));
     index := hashTable apply (#sortedCol,i-> sortedCol#i => i);
     permutation:= apply(col,a->index#a );
-    --error "test";
     permutationSign(permutation)
     )
 
@@ -1242,7 +962,6 @@ rsortList List := l -> (
     sortedList := rsort l;
     index := hashTable apply (#sortedList,i-> sortedList#i => i);
     permutation:= apply(l,a->index#a);
-    --error "test";
     (sortedList,permutationSign(permutation))
     )
 
@@ -1251,12 +970,9 @@ sortList List := l -> (
     sortedList := sort l;
     index := hashTable apply (#sortedList,i-> sortedList#i => i);
     permutation:= apply(l,a->index#a);
-    --error "test";
     (sortedList,permutationSign(permutation))
     )
 
-
---SpechtModuleTerm ? SpechtModuleTerm := (term1,term2)-> rowDescentOrder(term1#0,term2#0)
 
 YoungTableau ? YoungTableau := (tableau1,tableau2)-> rowDescentOrder(tableau1,tableau2)
 
@@ -1704,12 +1420,15 @@ multidoc ///
  	    characterTable
     Node
     	Key
-	    (innerProduct,MutableMatrix,MutableMatrix)
+	    (innerProduct,ZZ,MutableMatrix,MutableMatrix)
+	    innerProduct
 	Headline
 	    calculates the inner product for the characters of S_n
 	Usage
-	    innerProduct(X,Y)
+	    innerProduct(n,X,Y)
 	Inputs
+	    n:ZZ
+	    	the degree of the symmetric group
 	    X:MutableMatrix
 	    	a matrix row that represents a character of S_n
 	    Y:MutableMatrix
@@ -1718,10 +1437,21 @@ multidoc ///
 	    :ZZ
 	    	the inner product of the two characters X and Y
 	Description
+	    Text
+	    	The character table for two characters $X$ and $Y$ of $G$ is calculated using the formula 
+	    	$<X,Y> = \sum_{g \in G} X(g)Y(g) = \sum_{C \in Cl(G)} |C|X(g_C)Y(g_C) $
+	    	where the second sum is taken over all conjugacy classes of $G$ and $g_c$ is an element
+		in the conjugacy class.
+	    	
+		 As an example we calculate the inner product between the character of the 
+		 regular representation of $S_4$ and the character indexed by partition {2,1,1}.
 	    Example
-	    	charTable = 
-		charTable = 
-	    
+	    	n = 4
+	    	X = mutableMatrix  {{0,0,0,0,24}} 
+		Y = mutableMatrix  {{1,0,-1,-1,3}}
+	        innerProduct(4,X,Y)
+	    Text
+	    	As expected this inner product is equal to 3.
     Node
     	Key
 	    ((symbol _,symbol =),CharacterTable, Sequence)
@@ -3017,31 +2747,41 @@ multidoc ///
     	Key
 	    AsExpression
 	    [vandermondeDeterminant, AsExpression]
-    	    [higherSpechtPolynomial,AsExpression]
+    	    [schurPolynomial,AsExpression]
+	    [spechtPolynomial,AsExpression]
+	    [spechtPolynomials,AsExpression]
+	    [higherSpechtPolynomial,AsExpression]
 	    [higherSpechtPolynomials,AsExpression]
 	    [secondaryInvariants,AsExpression]
     	Headline
     	    an optional argument that returns polynomials as expressions	
     	Description
 	    Text	
-    	    	If the optional argument AsExpression is set to true then the Vandermonde determinants are
-		outputed as a Product expression. This is done primarily to reduce the size of the object since a Vandermonde determinant
-		has n! terms but only n*(n-1)/2 factors.
+    	    	The optional argument AsExpression specifies whether the polynomials
+		should be outputed as RingElement objects or as elements of type Expression 
 		  
 	    Example
 		R = QQ[x_0..x_3]
 		vandermondeDeterminant({0,2,3},R,AsExpression => true)
 		
     	    Text
-	    	For the method higherSpechtPolynomial if this option is true then the returned polynomial is factorize
-		All methods that call higherSpechtPolynomial have a similar behaviour
+	    	This allows to visualize some of the polynomials in a clearer way.
 	   Example
 	       p = new Partition from {2,2}
 	       S = youngTableau(p,{0,2,1,3})
 	       T = youngTableau(p,{0,1,2,3})
 	       higherSpechtPolynomial(S,T,R,AsExpression => true)
 	       higherSpechtPolynomials(R,AsExpression => true)
-
+	   Text
+	    	In some cases it also allows to work with polynomials whose term expansion
+		is very big.
+		
+	    Example
+	     	 R = QQ[x_1..x_10]
+		 p = new Partition from {1,1,1,1,1,1,1,1,1,1};
+		 spechtPolynomial(youngTableau(p,{0,1,2,3,4,5,6,7,8,9}),R,AsExpression => true)
+    	    SeeAlso
+	    	higherSpechtPolynomial
 
     Node
     	Key
@@ -3053,23 +2793,25 @@ multidoc ///
     	    an optional argument for specifying the algorithm for calculating higherSpechtPolynomials	
     	Description
 	    Text	
-    	    	If the optional argument AsExpression is set to true then the Vandermonde determinants are
-		outputed as a Product expression. This is done primarily to reduce the size of the object since a Vandermonde determinant
-		has n! terms but only n*(n-1)/2 factors.
-		  
+    	    	This optional argument decides between two ways to calculate higherSpechtPolynomials.
+	    	If it is set to to true then a calculation involving the row and column stabilizers
+	    	is used.                                                                                                                                                                                                      
+    	    	If it is set to false then another strategy is used. This strategy is based on a
+	    	representation of higher specht polynomials as a multiplication
+	    	of simpler Specht polynomials and Schur polynomials.
+	    
 	    Example
-		R = QQ[x_0..x_3]
-		vandermondeDeterminant({0,2,3},R,AsExpression => true)
-		
-    	    Text
-	    	For the method higherSpechtPolynomial if this option is true then the returned polynomial is factorize
-		All methods that call higherSpechtPolynomial have a similar behaviour
-	   Example
+	       R = QQ[x_1..x_4]
 	       p = new Partition from {2,2}
 	       S = youngTableau(p,{0,2,1,3})
 	       T = youngTableau(p,{0,1,2,3})
-	       higherSpechtPolynomial(S,T,R,AsExpression => true)
-	       higherSpechtPolynomials(R,AsExpression => true)
+	       higherSpechtPolynomial(S,T,R,Robust => true)
+	       higherSpechtPolynomial(S,T,R,Robust => false)
+    	    Text
+	    	This option is used mainly to check that the alternative algorithm proposed
+		was correct.
+	SeeAlso
+	     higherSpechtPolynomial
 	        
     Node
     	Key
@@ -3164,6 +2906,28 @@ multidoc ///
 		indexMonomial(S,T,R)
     	SeeAlso
 	    indexTableau
+
+    Node
+    	Key
+	    (permutationMatrix,List)
+	    permutationMatrix
+	Headline
+	    a permutation matrix generator
+	Usage
+	    permutationMatrix (permutation)
+	Inputs
+	    permutation:List
+	    	a list of numbers from 0..n-1 that represents a permutation
+	Outputs
+	    :Matrix
+	    	the matrix that represents the given permutation
+	Description
+	    Example
+	    	permutationMatrix {0,1,2}
+		permutationMatrix {1,0,2}
+		permutationMatrix {1,2,0}
+	    
+	
 	    
     Node
     	Key
@@ -3181,15 +2945,9 @@ multidoc ///
 	    
 	    R:PolynomialRing
 	    
-	    AsExpression => Boolean
-	    	An optional argument that allows to write the polynomial as an expression
-	    Robust => Boolean
-	    	An optional argument to decide the strategy for calculating the polynomial.
 	Outputs
     	   :RingElement
-	       if AsExpression == false
-	   :Expression 
-	       if AsExpression == true
+	    	the higher Specht polynomial	
     	Description
 	    Text
 	    	Higher Specht polynomials are a family of polynomials that form a basis of the coinvariant algebra for the symmetric group.
@@ -3257,11 +3015,6 @@ multidoc ///
 	    standard:TableauList
 	    	The list of standard tableaux of the same shape as S
 	    p:Partition
-	    	
-	    AsExpression => Boolean
-	    	An optional argument that allows to write the polynomial as an expression
-	    Robust => Boolean
-	    	An optional argument to decide the strategy for calculating the polynomial.
 	Outputs
     	   :HashTable
 	       a hash table with multiple levels depending on the input
@@ -3494,7 +3247,6 @@ multidoc ///
 	    	R = QQ[x_1..x_6]
 	    	genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}}
 		time seco = secondaryInvariants(genList,R);
-		time seco = secondaryInvariants(genList,R,AsExpression=>true);
 		seco#(new Partition from {2,2,2})
 		
 		
@@ -3592,7 +3344,6 @@ testStraighteningAlgorithm(List,TableauList,PolynomialRing):= (perm,standard,R)-
     	perm2 := perm_(flatten entries standard#matrix^{i});
 	polynomial := spechtPolynomial(youngTableau(standard#partition,perm2),R);
 	y:= youngTableau(standard#partition,perm2);
-	--printTableau(y);
 	lineal := straighteningAlgorithm y;
 	ini := 0;
 	suma:=0_R;
@@ -3641,7 +3392,6 @@ specht3 := higherSpechtPolynomials(R,Robust=>false, AsExpression => true);
 for p in keys specht0 do (
     for S in keys (specht0#p) do (
         for T in keys(specht0#p#S) do (
-	    --print (p,S,T);
 	    assert (specht0#p#S#T == value specht1#p#S#T);
 	     assert (specht0#p#S#T == specht2#p#S#T);
 	     assert (specht0#p#S#T == value specht3#p#S#T);
@@ -3709,78 +3459,4 @@ testInvariance(listGens,secondaryInvariants(listGens,R));
 
 ///
 end
-
-    	
-loadPackage("SpechtModule",Reload => true)
-installPackage(SpechtModule)
-check SpechtModule
-charTable = characterTable 5
-
-p = new Partition from {2,2,1}
-
-standard = standardTableaux p 
-
-
-y= youngTableau(p,{1,0,3,2,4}) 
-
-sortColumnsTableau y
-
-y
-
-garnirElement y
-
-straighteningAlgorithm y
-
-M = matrixRepresentation ({1,2,3,4,0},standard)
-
-p2 = conjugacyClass {1,2,3,4,0}
-
-charTable_(p,p2)
-
-
-
-
-G = {{0,2,1}}
-
-S = youngTableau(lambda,{0,2,1,4,3}); T = youngTableau(lambda,{0,1,2,3,4}); R = QQ[x_1..x_5];
-(S,T)
-R = QQ[x_1..x_5]
-
-higherSpechtPolynomial(S,T,R)
-
-higherSpechtPolynomial(S,T,R,AsExpression => true)
-
-
-G = generatePermutationGroup G
-
-secondaryInvariants(G,R,AsExpression => true)
-
-R = QQ[x_1..x_3]
-higherSpechtPolynomials(R,Robust => true)
-
-R = QQ[x_1..x_6]; genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}};
-time seco1 = secondaryInvariants(genList,R);
-time seco2 = secondaryInvariants(genList,R,AsExpression=>true);
-
-lambda = new Partition from {3,3};
-seco2#lambda#{0,2,4,1,3,5}
- 
- loadPackage("InvariantRing",Reload => true);
- genList = {{1,2,3,0,5,4},{0,4,2,5,1,3}};
- gen = apply (genList, p-> permutationMatrix p);
- H = generateGroup(gen,QQ);
- P = elementarySymmetricPolynomials R;
- time secondaryInvariants (P,H);
- 
-
-seco
-
-
-K=toField(QQ[a]/(a^2+a+1));
-R=K[x_1,x_2];
-A=matrix{{a,0},{0,a^2}};
-B=sub(matrix{{0,1},{1,0}},K);
-D6={A^0,A,A^2,B,A*B,A^2*B};
-P={x_1^3+x_2^3,(x_1^3*x_2^3)};
-secondaryInvariants(P,D6)
 

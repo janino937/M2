@@ -5,7 +5,11 @@ check SpechtModule
 charTable = characterTable 5
 
 R = QQ[y_11,y_12,y_13,y_14,y_15,y_21,y_22,y_23,y_24,y_31,y_32,y_35,y_43,y_44,y_45,x_11,x_12,x_13,x_14,x_15,x_21,x_22,x_23,x_24,x_25,x_31,x_32,x_33,x_34,x_35,x_41,x_42,x_43,x_44,x_45]
-
+m = matrix { {x_11,x_12,x_13,x_14,x_15},{x_21,x_22,x_23,x_24,x_25},{x_31,x_32,x_33,x_34,x_35},{x_41,x_42,x_43,x_44,x_45}}
+I = minors (3,m)
+S = R/I
+J = ideal {x_11-y_11,x_12-y_12,x_13-y_13,x_14-y_14,x_15-y_15,x_21-y_21,x_22-y_22,x_23-y_23,x_24-y_24,x_31-y_31,x_32-y_32,x_35-y_35,x_43-y_43,x_44-y_44,x_45-y_45}
+groebnerBasis ideal
 p = new Partition from {2,2,1}
 
 standard = standardTableaux p 
